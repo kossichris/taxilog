@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { Banknote, Car } from 'lucide-react';
-import { useGetMyVehicles } from '@/hooks/useDrivers';
+import { Banknote, ArrowRight } from 'lucide-react';
+import { useGetDriverPendingExpenses } from '@/hooks/useExpenses';
 
 const CATEGORY_LABELS: Record<string, { label: string; icon: string }> = {
   FUEL: { label: 'Carburant', icon: '⛽' },
@@ -14,13 +14,13 @@ const CATEGORY_LABELS: Record<string, { label: string; icon: string }> = {
 };
 
 export default function DriverExpensesPage() {
-  const { data: vehicles, isLoading } = useGetMyVehicles();
+  const { data: expenses, isLoading } = useGetDriverPendingExpenses();
 
   if (isLoading) {
     return (
       <div className="text-center py-12">
-        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div>
-        <p className="mt-2 text-gray-600">Chargement...</p>
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-red-500"></div>
+        <p className="mt-2 text-gray-600">Chargement des dépenses...</p>
       </div>
     );
   }
@@ -31,57 +31,48 @@ export default function DriverExpensesPage() {
         <div className="bg-red-600 p-3 rounded-lg">
           <Banknote size={28} className="text-white" />
         </div>
-        <h1 className="text-3xl sm:text-4xl font-bold text-gray-800">Dépenses</h1>
+        <h1 className="text-3xl sm:text-4xl font-bold text-gray-800">Dépenses à signer</h1>
       </div>
 
-      {!vehicles || vehicles.length === 0 ? (
+      {!expenses || expenses.length === 0 ? (
         <div className="bg-white rounded-lg shadow-lg p-8 sm:p-12 text-center border border-gray-200">
           <div className="w-16 h-16 bg-red-100 rounded-lg flex items-center justify-center mx-auto mb-4">
             <Banknote size={32} className="text-red-600" />
           </div>
-          <p className="text-gray-500 text-lg">Aucun véhicule assigné</p>
+          <p className="text-gray-500 text-lg">Aucune dépense à signer</p>
         </div>
       ) : (
-        <div className="space-y-6">
-          {vehicles.map((item) => (
-            <Link
-              key={item.id}
-              href={`/vehicles/${item.vehicle.id}/expenses`}
-              className="bg-white rounded-lg shadow hover:shadow-lg transition border border-gray-100 overflow-hidden group"
-            >
-              {/* Header */}
-              <div className="bg-gradient-to-r from-red-50 to-orange-50 p-4 flex items-start justify-between">
-                <div className="flex items-start gap-3 flex-1">
-                  <div className="bg-red-600 p-2 rounded-lg mt-1">
-                    <Car size={20} className="text-white" />
+        <div className="space-y-4">
+          {expenses.map((expense) => {
+            const category = CATEGORY_LABELS[expense.category] || CATEGORY_LABELS.OTHER;
+            return (
+              <Link
+                key={expense.id}
+                href={`/expenses/${expense.id}/sign`}
+                className="bg-white rounded-lg shadow hover:shadow-md transition border border-gray-200 p-4 flex items-center justify-between group"
+              >
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-2xl">{category.icon}</span>
+                    <div>
+                      <p className="font-semibold text-gray-800">{category.label}</p>
+                      <p className="text-xs text-gray-500">{expense.vehicle.plate}</p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-xs text-gray-500 font-medium">Immatriculation</p>
-                    <p className="text-lg sm:text-xl font-bold text-red-600 break-words">
-                      {item.vehicle.plate}
-                    </p>
-                  </div>
+                  {expense.description && (
+                    <p className="text-sm text-gray-600 ml-11">{expense.description}</p>
+                  )}
+                  <p className="text-xs text-gray-500 mt-2">
+                    {new Date(expense.date).toLocaleDateString('fr-FR')}
+                  </p>
                 </div>
-              </div>
-
-              {/* Content */}
-              <div className="p-4 space-y-3">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-xs text-gray-500 font-medium mb-1">Marque</p>
-                    <p className="font-semibold text-gray-800">{item.vehicle.brand}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 font-medium mb-1">Modèle</p>
-                    <p className="font-semibold text-gray-800">{item.vehicle.model}</p>
-                  </div>
+                <div className="flex items-center gap-4 ml-4">
+                  <p className="text-lg font-bold text-red-600">{expense.amount} F</p>
+                  <ArrowRight size={20} className="text-gray-400 group-hover:text-red-600 transition" />
                 </div>
-                <p className="text-xs text-amber-600 font-medium">
-                  Cliquez pour voir les dépenses →
-                </p>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>

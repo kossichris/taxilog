@@ -28,6 +28,7 @@ export class ExpensesController {
     @Body('description') description: string,
     @Body('category') category: 'FUEL' | 'MAINTENANCE' | 'INSURANCE' | 'TOLL' | 'PARKING' | 'OTHER',
     @Body('date') date: Date,
+    @Body('driverId') driverId: string,
     @Request() req: any,
   ) {
     return this.expensesService.createExpense(
@@ -37,6 +38,7 @@ export class ExpensesController {
       description,
       category,
       date,
+      driverId,
     );
   }
 
@@ -63,6 +65,43 @@ export class ExpensesController {
   async getOwnerTotalExpenses(@Request() req: any) {
     const total = await this.expensesService.getOwnerTotalExpenses(req.user.id);
     return { total };
+  }
+
+  @Post(':id/sign')
+  async signExpense(
+    @Param('id') id: string,
+    @Body('signature') signature: string,
+    @Request() req: any,
+  ) {
+    const isOwner = req.user.role === Role.OWNER;
+    return this.expensesService.signExpense(id, req.user.id, signature, isOwner);
+  }
+
+  @Post(':id/validate')
+  @UseGuards(RolesGuard)
+  @Roles(Role.OWNER)
+  async validateExpense(
+    @Param('id') id: string,
+    @Request() req: any,
+  ) {
+    return this.expensesService.validateExpense(id, req.user.id);
+  }
+
+  @Post(':id/reject')
+  @UseGuards(RolesGuard)
+  @Roles(Role.OWNER)
+  async rejectExpense(
+    @Param('id') id: string,
+    @Request() req: any,
+  ) {
+    return this.expensesService.rejectExpense(id, req.user.id);
+  }
+
+  @Get('driver/pending')
+  @UseGuards(RolesGuard)
+  @Roles(Role.DRIVER)
+  async getDriverPendingExpenses(@Request() req: any) {
+    return this.expensesService.getDriverPendingExpenses(req.user.id);
   }
 
   @Delete(':id')

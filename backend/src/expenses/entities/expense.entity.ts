@@ -21,6 +21,9 @@ export class Expense {
   @Column('uuid')
   owner_id: string;
 
+  @Column('uuid', { nullable: true })
+  driver_id: string;
+
   @Column('decimal', { precision: 10, scale: 2 })
   amount: number;
 
@@ -30,11 +33,17 @@ export class Expense {
   @Column('varchar')
   category: 'FUEL' | 'MAINTENANCE' | 'INSURANCE' | 'TOLL' | 'PARKING' | 'OTHER';
 
-  @Column('date')
+  @Column('timestamp')
   date: Date;
 
-  @Column('varchar', { default: 'VALIDATED' })
-  status: 'PENDING' | 'VALIDATED' | 'REJECTED';
+  @Column('varchar', { default: 'PENDING' })
+  status: 'PENDING' | 'SIGNED' | 'VALIDATED' | 'REJECTED';
+
+  @Column('longtext', { nullable: true })
+  signature: string;
+
+  @Column('timestamp', { nullable: true })
+  signed_at: Date;
 
   @Column('boolean', { default: false })
   active: boolean;
@@ -52,4 +61,8 @@ export class Expense {
   @ManyToOne(() => User, { eager: true })
   @JoinColumn({ name: 'owner_id' })
   owner: User;
+
+  @ManyToOne(() => User, { eager: true, nullable: true })
+  @JoinColumn({ name: 'driver_id' })
+  driver: User;
 }

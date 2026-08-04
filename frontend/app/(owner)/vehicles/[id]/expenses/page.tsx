@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { Banknote, ArrowLeft, Plus, Trash2 } from 'lucide-react';
-import { useGetVehicleExpenses, useDeleteExpense } from '@/hooks/useExpenses';
+import { Banknote, ArrowLeft, Plus, Trash2, Check, Clock, X } from 'lucide-react';
+import { useGetVehicleExpenses, useDeleteExpense, useSignExpense, useValidateExpense, useRejectExpense } from '@/hooks/useExpenses';
 import ConfirmModal from '@/components/ConfirmModal';
 
 const CATEGORY_LABELS: Record<string, { label: string; icon: string }> = {
@@ -20,6 +20,9 @@ export default function ExpensesPage() {
   const { id } = useParams();
   const { data: expenses, isLoading, error } = useGetVehicleExpenses(id as string);
   const deleteMutation = useDeleteExpense(id as string);
+  const signMutation = useSignExpense();
+  const validateMutation = useValidateExpense(id as string);
+  const rejectMutation = useRejectExpense(id as string);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedExpenseId, setSelectedExpenseId] = useState<string | null>(null);
   const [filterMonth, setFilterMonth] = useState<string>('');
@@ -36,6 +39,59 @@ export default function ExpensesPage() {
 
   const totalByMonth = filteredExpenses
     .reduce((sum, e) => sum + parseFloat(e.amount.toString()), 0);
+
+  const getStatusBadge = (status: string) => {
+    const badges = {
+      PENDING: { bg: 'bg-yellow-100', text: 'text-yellow-700', label: 'En attente', icon: Clock },
+      SIGNED: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Signé', icon: Check },
+      VALIDATED: { bg: 'bg-green-100', text: 'text-green-700', label: 'Validé', icon: Check },
+      REJECTED: { bg: 'bg-red-100', text: 'text-red-700', label: 'Rejeté', icon: X },
+    };
+    const badge = badges[status as keyof typeof badges] || badges.PENDING;
+    const Icon = badge.icon;
+    return (
+      <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium ${badge.bg} ${badge.text}`}>
+        <Icon size={14} />
+        {badge.label}
+      </span>
+    );
+  };
+
+  const handleSign = async (expenseId: string) => {
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = 400;
+      canvas.height = 150;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#333';
+        ctx.font = '20px Arial';
+        ctx.fillText('Signé par owner', 50, 50);
+        const signature = canvas.toDataURL('image/png');
+        await signMutation.mutateAsync({ expenseId, signature });
+      }
+    } catch (err) {
+      alert('Erreur lors de la signature');
+    }
+  };
+
+  const handleValidate = async (expenseId: string) => {
+    try {
+      await validateMutation.mutateAsync(expenseId);
+    } catch (err) {
+      alert('Erreur lors de la validation');
+    }
+  };
+
+  const handleReject = async (expenseId: string) => {
+    try {
+      await rejectMutation.mutateAsync(expenseId);
+    } catch (err) {
+      alert('Erreur lors du rejet');
+    }
+  };
 
   if (isLoading) {
     return (
@@ -159,9 +215,13 @@ export default function ExpensesPage() {
                       <div className="flex items-center gap-3 mb-2">
                         <span className="text-2xl">{category.icon}</span>
                         <div>
-                          <p className="font-semibold text-gray-800">{category.label}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-gray-800">{category.label}</p>
+                            {getStatusBadge(expense.status)}
+                          </div>
                           <p className="text-xs text-gray-500">
                             {new Date(expense.date).toLocaleDateString('fr-FR')}
+                            {expense.signed_at && ` • Signé le ${new Date(expense.signed_at).toLocaleDateString('fr-FR')}`}
                           </p>
                         </div>
                       </div>
@@ -169,15 +229,42 @@ export default function ExpensesPage() {
                         <p className="text-sm text-gray-600 ml-11">{expense.description}</p>
                       )}
                     </div>
-                    <div className="flex items-center gap-4 w-full sm:w-auto">
+                    <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap justify-end">
                       <p className="text-xl font-bold text-red-600">{expense.amount} F</p>
+                      {expense.status === 'PENDING' && (
+                        <button
+                          onClick={() => handleSign(expense.id)}
+                          disabled={signMutation.isPending}
+                          className="bg-amber-600 hover:bg-amber-700 disabled:bg-amber-400 text-white font-semibold py-2 px-3 rounded transition text-sm"
+                        >
+                          Signer
+                        </button>
+                      )}
+                      {expense.status === 'SIGNED' && (
+                        <button
+                          onClick={() => handleValidate(expense.id)}
+                          disabled={validateMutation.isPending}
+                          className="bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-semibold py-2 px-3 rounded transition text-sm"
+                        >
+                          Valider
+                        </button>
+                      )}
+                      {expense.status === 'SIGNED' && (
+                        <button
+                          onClick={() => handleReject(expense.id)}
+                          disabled={rejectMutation.isPending}
+                          className="bg-orange-600 hover:bg-orange-700 disabled:bg-orange-400 text-white font-semibold py-2 px-3 rounded transition text-sm"
+                        >
+                          Rejeter
+                        </button>
+                      )}
                       <button
                         onClick={() => handleDeleteClick(expense.id)}
                         disabled={deleteMutation.isPending}
-                        className="bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white font-semibold py-2 px-4 rounded transition text-sm flex items-center gap-1"
+                        className="text-red-600 hover:bg-red-50 p-2 rounded transition disabled:text-gray-400"
+                        title="Supprimer cette dépense"
                       >
-                        <Trash2 size={16} />
-                        Supprimer
+                        <Trash2 size={18} />
                       </button>
                     </div>
                   </div>

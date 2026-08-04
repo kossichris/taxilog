@@ -20,6 +20,7 @@ export class ExpensesService {
     description: string,
     category: 'FUEL' | 'MAINTENANCE' | 'INSURANCE' | 'TOLL' | 'PARKING' | 'OTHER',
     date: Date,
+    driverId?: string,
   ): Promise<Expense> {
     const vehicle = await this.vehiclesRepository.findOne({
       where: { id: vehicleId, owner_id: ownerId },
@@ -32,11 +33,12 @@ export class ExpensesService {
     const expense = this.expensesRepository.create({
       vehicle_id: vehicleId,
       owner_id: ownerId,
+      driver_id: driverId || null,
       amount,
       description,
       category,
       date,
-      status: 'VALIDATED',
+      status: 'PENDING',
       active: true,
     });
 
@@ -102,5 +104,76 @@ export class ExpensesService {
       .getRawOne();
 
     return parseFloat(result?.total || 0);
+  }
+
+  async signExpense(expenseId: string, userId: string, signature: string, isOwner: boolean = false): Promise<Expense> {
+    const expense = await this.expensesRepository.findOne({ where: { id: expenseId } });
+
+    if (!expense) {
+      throw new NotFoundException('Dépense non trouvée');
+    }
+
+    if (!isOwner && expense.driver_id !== userId) {
+      throw new BadRequestException('Vous ne pouvez pas signer cette dépense');
+    }
+
+    if (isOwner && expense.owner_id !== userId) {
+      throw new BadRequestException('Vous ne pouvez pas signer cette dépense');
+    }
+
+    if (expense.status !== 'PENDING') {
+      throw new BadRequestException('Cette dépense ne peut pas être signée');
+    }
+
+    expense.status = 'SIGNED';
+    expense.signature = signature;
+    expense.signed_at = new Date();
+
+    return this.expensesRepository.save(expense);
+  }
+
+  async validateExpense(expenseId: string, ownerId: string): Promise<Expense> {
+    const expense = await this.expensesRepository.findOne({ where: { id: expenseId } });
+
+    if (!expense) {
+      throw new NotFoundException('Dépense non trouvée');
+    }
+
+    if (expense.owner_id !== ownerId) {
+      throw new BadRequestException('Vous ne pouvez pas valider cette dépense');
+    }
+
+    if (expense.status !== 'SIGNED') {
+      throw new BadRequestException('Cette dépense ne peut pas être validée');
+    }
+
+    expense.status = 'VALIDATED';
+    return this.expensesRepository.save(expense);
+  }
+
+  async rejectExpense(expenseId: string, ownerId: string): Promise<Expense> {
+    const expense = await this.expensesRepository.findOne({ where: { id: expenseId } });
+
+    if (!expense) {
+      throw new NotFoundException('Dépense non trouvée');
+    }
+
+    if (expense.owner_id !== ownerId) {
+      throw new BadRequestException('Vous ne pouvez pas rejeter cette dépense');
+    }
+
+    if (expense.status !== 'SIGNED') {
+      throw new BadRequestException('Cette dépense ne peut pas être rejetée');
+    }
+
+    expense.status = 'PENDING';
+    return this.expensesRepository.save(expense);
+  }
+
+  async getDriverPendingExpenses(driverId: string): Promise<Expense[]> {
+    return this.expensesRepository.find({
+      where: { driver_id: driverId, status: 'PENDING', active: true },
+      order: { date: 'DESC' },
+    });
   }
 }
