@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { DollarSign, ArrowLeft, Plus, Check, Clock, X, Trash2 } from 'lucide-react';
+import { DollarSign, ArrowLeft, Plus, Check, Clock, X, Trash2, CheckCircle2, XCircle } from 'lucide-react';
 import { useGetVehicleRevenues, useValidateRevenue, useDeleteRevenue, useSignRevenue, useRejectRevenue } from '@/hooks/useRevenues';
 import ConfirmModal from '@/components/ConfirmModal';
 
@@ -211,43 +211,48 @@ export default function RevenuesPage() {
                       {revenue.signed_at && ` • Signé le ${new Date(revenue.signed_at).toLocaleDateString('fr-FR')}`}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap justify-end">
-                    <p className="text-xl font-bold text-emerald-600">{revenue.amount} F</p>
-                    {revenue.status === 'PENDING' && (
+                  <div className="flex items-center gap-3 w-full sm:w-auto ml-auto">
+                    <p className="text-lg font-bold text-emerald-600 whitespace-nowrap">{revenue.amount} F</p>
+                    <div className="flex items-center gap-1">
+                      {revenue.status === 'PENDING' && (
+                        <button
+                          onClick={() => handleSign(revenue.id)}
+                          disabled={signMutation.isPending}
+                          className="text-amber-600 hover:bg-amber-50 p-1.5 rounded transition disabled:text-gray-400"
+                          title="Signer cette recette"
+                        >
+                          <Check size={18} />
+                        </button>
+                      )}
+                      {revenue.status === 'SIGNED' && (
+                        <>
+                          <button
+                            onClick={() => handleValidate(revenue.id)}
+                            disabled={validateMutation.isPending}
+                            className="text-emerald-600 hover:bg-emerald-50 p-1.5 rounded transition disabled:text-gray-400"
+                            title="Valider cette recette"
+                          >
+                            <CheckCircle2 size={18} />
+                          </button>
+                          <button
+                            onClick={() => handleReject(revenue.id)}
+                            disabled={rejectMutation.isPending}
+                            className="text-orange-600 hover:bg-orange-50 p-1.5 rounded transition disabled:text-gray-400"
+                            title="Rejeter cette recette"
+                          >
+                            <XCircle size={18} />
+                          </button>
+                        </>
+                      )}
                       <button
-                        onClick={() => handleSign(revenue.id)}
-                        disabled={signMutation.isPending}
-                        className="bg-amber-600 hover:bg-amber-700 disabled:bg-amber-400 text-white font-semibold py-2 px-3 rounded transition text-sm"
+                        onClick={() => handleDeleteClick(revenue.id)}
+                        disabled={deleteMutation.isPending}
+                        className="text-red-600 hover:bg-red-50 p-1.5 rounded transition disabled:text-gray-400"
+                        title="Supprimer cette recette"
                       >
-                        Signer
+                        <Trash2 size={18} />
                       </button>
-                    )}
-                    {revenue.status === 'SIGNED' && (
-                      <button
-                        onClick={() => handleValidate(revenue.id)}
-                        disabled={validateMutation.isPending}
-                        className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-semibold py-2 px-3 rounded transition text-sm"
-                      >
-                        Valider
-                      </button>
-                    )}
-                    {revenue.status === 'SIGNED' && (
-                      <button
-                        onClick={() => handleReject(revenue.id)}
-                        disabled={rejectMutation.isPending}
-                        className="bg-orange-600 hover:bg-orange-700 disabled:bg-orange-400 text-white font-semibold py-2 px-3 rounded transition text-sm"
-                      >
-                        Rejeter
-                      </button>
-                    )}
-                    <button
-                      onClick={() => handleDeleteClick(revenue.id)}
-                      disabled={deleteMutation.isPending}
-                      className="text-red-600 hover:bg-red-50 p-2 rounded transition disabled:text-gray-400"
-                      title="Supprimer cette recette"
-                    >
-                      <Trash2 size={18} />
-                    </button>
+                    </div>
                   </div>
                 </div>
               ))}

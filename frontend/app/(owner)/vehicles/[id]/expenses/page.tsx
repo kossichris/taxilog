@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { Banknote, ArrowLeft, Plus, Trash2, Check, Clock, X } from 'lucide-react';
+import { Banknote, ArrowLeft, Plus, Trash2, Check, Clock, X, CheckCircle2, XCircle } from 'lucide-react';
 import { useGetVehicleExpenses, useDeleteExpense, useSignExpense, useValidateExpense, useRejectExpense } from '@/hooks/useExpenses';
 import ConfirmModal from '@/components/ConfirmModal';
 
@@ -229,43 +229,48 @@ export default function ExpensesPage() {
                         <p className="text-sm text-gray-600 ml-11">{expense.description}</p>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap justify-end">
-                      <p className="text-xl font-bold text-red-600">{expense.amount} F</p>
-                      {expense.status === 'PENDING' && (
+                    <div className="flex items-center gap-3 w-full sm:w-auto ml-auto">
+                      <p className="text-lg font-bold text-red-600 whitespace-nowrap">{expense.amount} F</p>
+                      <div className="flex items-center gap-1">
+                        {expense.status === 'PENDING' && (
+                          <button
+                            onClick={() => handleSign(expense.id)}
+                            disabled={signMutation.isPending}
+                            className="text-amber-600 hover:bg-amber-50 p-1.5 rounded transition disabled:text-gray-400"
+                            title="Signer cette dépense"
+                          >
+                            <Check size={18} />
+                          </button>
+                        )}
+                        {expense.status === 'SIGNED' && (
+                          <>
+                            <button
+                              onClick={() => handleValidate(expense.id)}
+                              disabled={validateMutation.isPending}
+                              className="text-emerald-600 hover:bg-emerald-50 p-1.5 rounded transition disabled:text-gray-400"
+                              title="Valider cette dépense"
+                            >
+                              <CheckCircle2 size={18} />
+                            </button>
+                            <button
+                              onClick={() => handleReject(expense.id)}
+                              disabled={rejectMutation.isPending}
+                              className="text-orange-600 hover:bg-orange-50 p-1.5 rounded transition disabled:text-gray-400"
+                              title="Rejeter cette dépense"
+                            >
+                              <XCircle size={18} />
+                            </button>
+                          </>
+                        )}
                         <button
-                          onClick={() => handleSign(expense.id)}
-                          disabled={signMutation.isPending}
-                          className="bg-amber-600 hover:bg-amber-700 disabled:bg-amber-400 text-white font-semibold py-2 px-3 rounded transition text-sm"
+                          onClick={() => handleDeleteClick(expense.id)}
+                          disabled={deleteMutation.isPending}
+                          className="text-red-600 hover:bg-red-50 p-1.5 rounded transition disabled:text-gray-400"
+                          title="Supprimer cette dépense"
                         >
-                          Signer
+                          <Trash2 size={18} />
                         </button>
-                      )}
-                      {expense.status === 'SIGNED' && (
-                        <button
-                          onClick={() => handleValidate(expense.id)}
-                          disabled={validateMutation.isPending}
-                          className="bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-semibold py-2 px-3 rounded transition text-sm"
-                        >
-                          Valider
-                        </button>
-                      )}
-                      {expense.status === 'SIGNED' && (
-                        <button
-                          onClick={() => handleReject(expense.id)}
-                          disabled={rejectMutation.isPending}
-                          className="bg-orange-600 hover:bg-orange-700 disabled:bg-orange-400 text-white font-semibold py-2 px-3 rounded transition text-sm"
-                        >
-                          Rejeter
-                        </button>
-                      )}
-                      <button
-                        onClick={() => handleDeleteClick(expense.id)}
-                        disabled={deleteMutation.isPending}
-                        className="text-red-600 hover:bg-red-50 p-2 rounded transition disabled:text-gray-400"
-                        title="Supprimer cette dépense"
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                      </div>
                     </div>
                   </div>
                 );
