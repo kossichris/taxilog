@@ -40,78 +40,80 @@ export interface OwnerReportData {
 
 @Injectable()
 export class ExportService {
-  generatePDF(data: ExportData): Buffer {
-    const doc = new PDFDocument({
-      size: 'A4',
-      margin: 50,
+  generatePDF(data: ExportData): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+      const doc = new PDFDocument({
+        size: 'A4',
+        margin: 50,
+      });
+
+      const buffers: Buffer[] = [];
+      doc.on('data', (chunk) => buffers.push(chunk));
+      doc.on('end', () => resolve(Buffer.concat(buffers)));
+      doc.on('error', reject);
+
+      // Header
+      doc
+        .fontSize(20)
+        .font('Helvetica-Bold')
+        .text('Rapport TaxiLog', { align: 'center' })
+        .moveDown(0.5);
+
+      doc
+        .fontSize(12)
+        .font('Helvetica')
+        .text(`Véhicule: ${data.vehiclePlate}`, { align: 'center' })
+        .text(
+          `Période: ${new Date(data.startDate).toLocaleDateString('fr-FR')} - ${new Date(data.endDate).toLocaleDateString('fr-FR')}`,
+          { align: 'center' },
+        )
+        .moveDown(1);
+
+      // Summary
+      doc.fontSize(11).font('Helvetica-Bold').text('Résumé');
+      doc
+        .fontSize(10)
+        .font('Helvetica')
+        .text(`Total: ${data.total.toFixed(2)} F`)
+        .text(`Validé: ${data.validated.toFixed(2)} F`)
+        .text(`En attente: ${(data.total - data.validated).toFixed(2)} F`)
+        .moveDown(1);
+
+      // Table header
+      const tableTop = doc.y;
+      const col1 = 50;
+      const col2 = 150;
+      const col3 = 300;
+      const col4 = 420;
+      const rowHeight = 25;
+
+      doc.fontSize(10).font('Helvetica-Bold');
+      doc.text('Date', col1, tableTop);
+      doc.text('Chauffeur', col2, tableTop);
+      doc.text('Montant', col3, tableTop);
+      doc.text('Statut', col4, tableTop);
+
+      doc.moveTo(50, tableTop + 20).lineTo(550, tableTop + 20).stroke();
+
+      // Table rows
+      let y = tableTop + 30;
+      doc.fontSize(9).font('Helvetica');
+
+      data.items.forEach((item) => {
+        if (y > 700) {
+          doc.addPage();
+          y = 50;
+        }
+
+        doc.text(item.date, col1, y);
+        doc.text(item.name, col2, y);
+        doc.text(`${item.amount.toFixed(2)} F`, col3, y);
+        doc.text(item.status, col4, y);
+        y += rowHeight;
+      });
+
+      doc.end();
     });
-
-    const buffers: Buffer[] = [];
-    doc.on('data', (chunk) => buffers.push(chunk));
-
-    // Header
-    doc
-      .fontSize(20)
-      .font('Helvetica-Bold')
-      .text('Rapport TaxiLog', { align: 'center' })
-      .moveDown(0.5);
-
-    doc
-      .fontSize(12)
-      .font('Helvetica')
-      .text(`Véhicule: ${data.vehiclePlate}`, { align: 'center' })
-      .text(
-        `Période: ${new Date(data.startDate).toLocaleDateString('fr-FR')} - ${new Date(data.endDate).toLocaleDateString('fr-FR')}`,
-        { align: 'center' },
-      )
-      .moveDown(1);
-
-    // Summary
-    doc.fontSize(11).font('Helvetica-Bold').text('Résumé');
-    doc
-      .fontSize(10)
-      .font('Helvetica')
-      .text(`Total: ${data.total.toFixed(2)} F`)
-      .text(`Validé: ${data.validated.toFixed(2)} F`)
-      .text(`En attente: ${(data.total - data.validated).toFixed(2)} F`)
-      .moveDown(1);
-
-    // Table header
-    const tableTop = doc.y;
-    const col1 = 50;
-    const col2 = 150;
-    const col3 = 300;
-    const col4 = 420;
-    const rowHeight = 25;
-
-    doc.fontSize(10).font('Helvetica-Bold');
-    doc.text('Date', col1, tableTop);
-    doc.text('Chauffeur', col2, tableTop);
-    doc.text('Montant', col3, tableTop);
-    doc.text('Statut', col4, tableTop);
-
-    doc.moveTo(50, tableTop + 20).lineTo(550, tableTop + 20).stroke();
-
-    // Table rows
-    let y = tableTop + 30;
-    doc.fontSize(9).font('Helvetica');
-
-    data.items.forEach((item) => {
-      if (y > 700) {
-        doc.addPage();
-        y = 50;
-      }
-
-      doc.text(item.date, col1, y);
-      doc.text(item.name, col2, y);
-      doc.text(`${item.amount.toFixed(2)} F`, col3, y);
-      doc.text(item.status, col4, y);
-      y += rowHeight;
-    });
-
-    doc.end();
-
-    return Buffer.concat(buffers);
   }
 
   async generateExcel(data: ExportData): Promise<Buffer> {
@@ -156,89 +158,91 @@ export class ExportService {
     return Buffer.from(buffer);
   }
 
-  generateOwnerReportPDF(data: OwnerReportData): Buffer {
-    const doc = new PDFDocument({
-      size: 'A4',
-      margin: 50,
+  generateOwnerReportPDF(data: OwnerReportData): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+      const doc = new PDFDocument({
+        size: 'A4',
+        margin: 50,
+      });
+
+      const buffers: Buffer[] = [];
+      doc.on('data', (chunk) => buffers.push(chunk));
+      doc.on('end', () => resolve(Buffer.concat(buffers)));
+      doc.on('error', reject);
+
+      // Header
+      doc
+        .fontSize(20)
+        .font('Helvetica-Bold')
+        .text('Rapport Complet TaxiLog', { align: 'center' })
+        .moveDown(0.3);
+
+      doc
+        .fontSize(10)
+        .font('Helvetica')
+        .text(`Généré le: ${data.generatedAt}`, { align: 'center' })
+        .moveDown(1);
+
+      // Summary
+      doc.fontSize(12).font('Helvetica-Bold').text('Résumé Global');
+      doc
+        .fontSize(10)
+        .font('Helvetica')
+        .text(`Total Recettes: ${data.totalRevenues.toFixed(2)} F`)
+        .text(`Total Dépenses: ${data.totalExpenses.toFixed(2)} F`)
+        .text(`Bénéfice Net: ${data.totalProfit.toFixed(2)} F`)
+        .moveDown(1);
+
+      // Monthly summary
+      doc.fontSize(11).font('Helvetica-Bold').text('Par Mois');
+      doc.fontSize(9).font('Helvetica');
+
+      data.monthlyData.forEach((month) => {
+        doc.text(
+          `${month.month}: Recettes ${month.revenues.toFixed(2)}F | Dépenses ${month.expenses.toFixed(2)}F | Bénéfice ${month.profit.toFixed(2)}F`,
+        );
+      });
+
+      doc.moveDown(1);
+
+      // Table header
+      const tableTop = doc.y;
+      const col1 = 50;
+      const col2 = 120;
+      const col3 = 250;
+      const col4 = 400;
+      const col5 = 500;
+      const rowHeight = 20;
+
+      doc.fontSize(10).font('Helvetica-Bold');
+      doc.text('Date', col1, tableTop);
+      doc.text('Type', col2, tableTop);
+      doc.text('Véhicule', col3, tableTop);
+      doc.text('Montant', col4, tableTop);
+      doc.text('Statut', col5, tableTop);
+
+      doc.moveTo(50, tableTop + 15).lineTo(550, tableTop + 15).stroke();
+
+      // Table rows
+      let y = tableTop + 25;
+      doc.fontSize(8).font('Helvetica');
+
+      data.items.slice(0, 100).forEach((item) => {
+        if (y > 700) {
+          doc.addPage();
+          y = 50;
+        }
+
+        doc.text(item.date, col1, y);
+        doc.text(item.type === 'revenue' ? 'Recette' : 'Dépense', col2, y);
+        doc.text(item.vehicle, col3, y);
+        doc.text(`${item.amount.toFixed(2)} F`, col4, y);
+        doc.text(item.status, col5, y);
+        y += rowHeight;
+      });
+
+      doc.end();
     });
-
-    const buffers: Buffer[] = [];
-    doc.on('data', (chunk) => buffers.push(chunk));
-
-    // Header
-    doc
-      .fontSize(20)
-      .font('Helvetica-Bold')
-      .text('Rapport Complet TaxiLog', { align: 'center' })
-      .moveDown(0.3);
-
-    doc
-      .fontSize(10)
-      .font('Helvetica')
-      .text(`Généré le: ${data.generatedAt}`, { align: 'center' })
-      .moveDown(1);
-
-    // Summary
-    doc.fontSize(12).font('Helvetica-Bold').text('Résumé Global');
-    doc
-      .fontSize(10)
-      .font('Helvetica')
-      .text(`Total Recettes: ${data.totalRevenues.toFixed(2)} F`)
-      .text(`Total Dépenses: ${data.totalExpenses.toFixed(2)} F`)
-      .text(`Bénéfice Net: ${data.totalProfit.toFixed(2)} F`)
-      .moveDown(1);
-
-    // Monthly summary
-    doc.fontSize(11).font('Helvetica-Bold').text('Par Mois');
-    doc.fontSize(9).font('Helvetica');
-
-    data.monthlyData.forEach((month) => {
-      doc.text(
-        `${month.month}: Recettes ${month.revenues.toFixed(2)}F | Dépenses ${month.expenses.toFixed(2)}F | Bénéfice ${month.profit.toFixed(2)}F`,
-      );
-    });
-
-    doc.moveDown(1);
-
-    // Table header
-    const tableTop = doc.y;
-    const col1 = 50;
-    const col2 = 120;
-    const col3 = 250;
-    const col4 = 400;
-    const col5 = 500;
-    const rowHeight = 20;
-
-    doc.fontSize(10).font('Helvetica-Bold');
-    doc.text('Date', col1, tableTop);
-    doc.text('Type', col2, tableTop);
-    doc.text('Véhicule', col3, tableTop);
-    doc.text('Montant', col4, tableTop);
-    doc.text('Statut', col5, tableTop);
-
-    doc.moveTo(50, tableTop + 15).lineTo(550, tableTop + 15).stroke();
-
-    // Table rows
-    let y = tableTop + 25;
-    doc.fontSize(8).font('Helvetica');
-
-    data.items.slice(0, 100).forEach((item) => {
-      if (y > 700) {
-        doc.addPage();
-        y = 50;
-      }
-
-      doc.text(item.date, col1, y);
-      doc.text(item.type === 'revenue' ? 'Recette' : 'Dépense', col2, y);
-      doc.text(item.vehicle, col3, y);
-      doc.text(`${item.amount.toFixed(2)} F`, col4, y);
-      doc.text(item.status, col5, y);
-      y += rowHeight;
-    });
-
-    doc.end();
-
-    return Buffer.concat(buffers);
   }
 
   async generateOwnerReportExcel(data: OwnerReportData): Promise<Buffer> {

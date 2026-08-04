@@ -173,7 +173,7 @@ export class RevenuesController {
     };
 
     if (format === 'pdf') {
-      const pdf = this.exportService.generatePDF(exportData);
+      const pdf = await this.exportService.generatePDF(exportData);
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader(
         'Content-Disposition',

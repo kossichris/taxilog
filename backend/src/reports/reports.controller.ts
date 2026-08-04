@@ -50,7 +50,7 @@ export class ReportsController {
     };
 
     if (format === 'pdf') {
-      const pdf = this.exportService.generateOwnerReportPDF(reportData);
+      const pdf = await this.exportService.generateOwnerReportPDF(reportData);
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader(
         'Content-Disposition',
