@@ -5,9 +5,9 @@ export function middleware(request: NextRequest) {
   const accessToken = request.cookies.get('access_token')?.value;
   const userRole = request.cookies.get('userRole')?.value;
 
-  const isAuthPath = path.startsWith('/(auth)') || path.startsWith('/login') || path.startsWith('/register');
-  const isOwnerPath = path.startsWith('/(owner)') || path.startsWith('/dashboard') || path.startsWith('/vehicles');
-  const isDriverPath = path.startsWith('/(driver)') || path.startsWith('/driver');
+  const isAuthPath = path.startsWith('/login') || path.startsWith('/register');
+  const isOwnerPath = path.startsWith('/dashboard') || path.startsWith('/vehicles');
+  const isDriverPath = path.startsWith('/driver');
 
   if (!accessToken) {
     if (isAuthPath || path === '/') {
@@ -44,7 +44,5 @@ export const config = {
     '/dashboard',
     '/vehicles/:path*',
     '/driver/:path*',
-    '/(owner)/:path*',
-    '/(driver)/:path*',
   ],
 };
