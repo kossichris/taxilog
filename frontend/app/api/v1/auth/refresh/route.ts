@@ -3,7 +3,8 @@ import { verifyToken, generateAccessToken, getUserById } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
-    const { refreshToken } = await request.json();
+    const body = await request.json();
+    const refreshToken = body.refresh_token || body.refreshToken;
 
     if (!refreshToken) {
       return NextResponse.json(
