@@ -81,6 +81,7 @@ export function useSignRevenue() {
       return response.data;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['revenues'] });
       queryClient.invalidateQueries({ queryKey: ['pending-revenues'] });
       queryClient.invalidateQueries({ queryKey: ['my-revenues'] });
     },
@@ -96,6 +97,8 @@ export function useValidateRevenue(vehicleId?: string) {
       return response.data;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['revenues'] });
+      queryClient.invalidateQueries({ queryKey: ['owner-total-revenues'] });
       if (vehicleId) {
         queryClient.invalidateQueries({ queryKey: ['revenues', vehicleId] });
       }
@@ -112,6 +115,7 @@ export function useRejectRevenue(vehicleId?: string) {
       return response.data;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['revenues'] });
       if (vehicleId) {
         queryClient.invalidateQueries({ queryKey: ['revenues', vehicleId] });
       }

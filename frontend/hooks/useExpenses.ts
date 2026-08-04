@@ -79,9 +79,10 @@ export function useSignExpense() {
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['driver-pending-expenses'] });
       queryClient.invalidateQueries({ queryKey: ['expenses'] });
+      queryClient.invalidateQueries({ queryKey: ['driver-pending-expenses'] });
       queryClient.invalidateQueries({ queryKey: ['owner-expenses'] });
+      queryClient.invalidateQueries({ queryKey: ['owner-total-expenses'] });
     },
   });
 }
@@ -95,11 +96,12 @@ export function useValidateExpense(vehicleId?: string) {
       return response.data;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['expenses'] });
+      queryClient.invalidateQueries({ queryKey: ['owner-total-expenses'] });
+      queryClient.invalidateQueries({ queryKey: ['owner-expenses'] });
       if (vehicleId) {
         queryClient.invalidateQueries({ queryKey: ['expenses', vehicleId] });
       }
-      queryClient.invalidateQueries({ queryKey: ['owner-total-expenses'] });
-      queryClient.invalidateQueries({ queryKey: ['owner-expenses'] });
     },
   });
 }
@@ -113,10 +115,11 @@ export function useRejectExpense(vehicleId?: string) {
       return response.data;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['expenses'] });
+      queryClient.invalidateQueries({ queryKey: ['owner-expenses'] });
       if (vehicleId) {
         queryClient.invalidateQueries({ queryKey: ['expenses', vehicleId] });
       }
-      queryClient.invalidateQueries({ queryKey: ['owner-expenses'] });
     },
   });
 }
