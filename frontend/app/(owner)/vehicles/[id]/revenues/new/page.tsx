@@ -100,7 +100,7 @@ export default function NewRevenuePage() {
               required
             >
               <option value="">Sélectionner un driver</option>
-              {drivers?.map((driver) => (
+              {drivers?.map((driver: any) => (
                 <option key={driver.id} value={driver.id}>
                   {driver.user.name} ({driver.user.phone})
                 </option>

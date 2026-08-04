@@ -38,7 +38,7 @@ export default function ExpensesPage() {
   const totalItems = paginatedData?.total || 0;
   const totalPages = paginatedData?.pages || 1;
 
-  const filteredExpenses = expenses.filter((expense) => {
+  const filteredExpenses = expenses.filter((expense: any) => {
     if (!filterMonth) return true;
     const expenseDate = new Date(expense.date);
     const [year, month] = filterMonth.split('-');
@@ -49,11 +49,11 @@ export default function ExpensesPage() {
   });
 
   const totalByMonth = filteredExpenses
-    .reduce((sum, e) => sum + parseFloat(e.amount.toString()), 0);
+    .reduce((sum: number, e: any) => sum + parseFloat(e.amount.toString()), 0);
 
   const validatedByMonth = filteredExpenses
-    .filter(e => e.status === 'VALIDATED')
-    .reduce((sum, e) => sum + parseFloat(e.amount.toString()), 0);
+    .filter((e: any) => e.status === 'VALIDATED')
+    .reduce((sum: number, e: any) => sum + parseFloat(e.amount.toString()), 0);
 
   const getStatusBadge = (status: string) => {
     const badges = {
@@ -208,7 +208,7 @@ export default function ExpensesPage() {
           <div className="p-6 text-center text-gray-600">Aucune dépense trouvée</div>
         ) : (
           <div className="divide-y">
-            {filteredExpenses.map((expense) => {
+            {filteredExpenses.map((expense: any) => {
               const Icon = categoryIcons[expense.category] || Banknote;
               return (
                 <div key={expense.id} className="p-4 hover:bg-gray-50 flex justify-between items-center">

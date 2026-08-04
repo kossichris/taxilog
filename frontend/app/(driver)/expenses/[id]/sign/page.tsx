@@ -24,7 +24,7 @@ export default function SignExpensePage() {
   const [error, setError] = useState('');
   const signMutation = useSignExpense();
 
-  const expense = expenses?.find((e) => e.id === id);
+  const expense = expenses?.find((e: any) => e.id === id);
   const category = expense ? CATEGORY_LABELS[expense.category] || CATEGORY_LABELS.OTHER : null;
 
   const handleSign = async () => {

@@ -15,7 +15,7 @@ export default function SignRevenuePage() {
   const [error, setError] = useState('');
   const signMutation = useSignRevenue();
 
-  const revenue = revenues?.find((r) => r.id === id);
+  const revenue = revenues?.find((r: any) => r.id === id);
 
   const handleSign = async () => {
     setError('');

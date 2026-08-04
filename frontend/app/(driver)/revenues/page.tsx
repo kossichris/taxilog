@@ -42,7 +42,7 @@ export default function DriverRevenuesPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {revenues.map((revenue) => (
+          {revenues.map((revenue: any) => (
             <Link
               key={revenue.id}
               href={`/revenues/${revenue.id}/sign`}

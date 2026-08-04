@@ -42,7 +42,7 @@ export default function DriverMyVehiclesPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {vehicles.map((vehicle) => (
+          {vehicles.map((vehicle: any) => (
             <div
               key={vehicle.id}
               className="bg-white rounded-lg shadow hover:shadow-lg transition border border-gray-100 overflow-hidden group"

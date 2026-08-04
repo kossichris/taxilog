@@ -100,7 +100,7 @@ export default function VehicleDriversPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {drivers.map((driver) => (
+              {drivers.map((driver: any) => (
                 <div key={driver.id} className="flex items-center justify-between bg-gray-50 rounded-lg p-3 border border-gray-200 hover:border-amber-300 transition">
                   <div className="flex-1">
                     <p className="font-semibold text-gray-800">{driver.user.name}</p>

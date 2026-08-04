@@ -29,7 +29,7 @@ export default function RevenuesPage() {
   const totalItems = paginatedData?.total || 0;
   const totalPages = paginatedData?.pages || 1;
 
-  const filteredRevenues = revenues.filter((revenue) => {
+  const filteredRevenues = revenues.filter((revenue: any) => {
     if (!filterMonth) return true;
     const revenueDate = new Date(revenue.date);
     const [year, month] = filterMonth.split('-');
@@ -40,11 +40,11 @@ export default function RevenuesPage() {
   });
 
   const totalByMonth = filteredRevenues
-    .reduce((sum, r) => sum + parseFloat(r.amount.toString()), 0);
+    .reduce((sum: number, r: any) => sum + parseFloat(r.amount.toString()), 0);
 
   const validatedByMonth = filteredRevenues
-    .filter(r => r.status === 'VALIDATED')
-    .reduce((sum, r) => sum + parseFloat(r.amount.toString()), 0);
+    .filter((r: any) => r.status === 'VALIDATED')
+    .reduce((sum: number, r: any) => sum + parseFloat(r.amount.toString()), 0);
 
   const getStatusBadge = (status: string) => {
     const badges = {
@@ -199,7 +199,7 @@ export default function RevenuesPage() {
           <div className="p-6 text-center text-gray-600">Aucune recette trouvée</div>
         ) : (
           <div className="divide-y">
-            {filteredRevenues.map((revenue) => (
+            {filteredRevenues.map((revenue: any) => (
               <div key={revenue.id} className="p-4 hover:bg-gray-50 flex justify-between items-center">
                 <div className="flex-1">
                   <p className="font-semibold text-gray-800">{revenue.driver?.name || 'N/A'}</p>

@@ -25,9 +25,9 @@ export default function VehicleDetailPage() {
 
   const totals = useMemo(() => {
     const totalRevenues = (revenues || [])
-      .reduce((sum, r) => sum + parseFloat(r.amount.toString()), 0);
+      .reduce((sum: number, r: any) => sum + parseFloat(r.amount.toString()), 0);
     const totalExpenses = (expenses || [])
-      .reduce((sum, e) => sum + parseFloat(e.amount.toString()), 0);
+      .reduce((sum: number, e: any) => sum + parseFloat(e.amount.toString()), 0);
     return {
       revenues: totalRevenues,
       expenses: totalExpenses,
@@ -69,18 +69,16 @@ export default function VehicleDetailPage() {
     setIsDeleteModalOpen(false);
   };
 
-  const handleExportClick = (format: 'pdf' | 'excel') => {
+  const handleExportClick = async (format: 'pdf' | 'excel') => {
     setIsExporting(true);
-    exportReport(format)
-      .then(() => {
-        setIsExportModalOpen(false);
-      })
-      .catch(() => {
-        alert('Erreur lors de l\'export');
-      })
-      .finally(() => {
-        setIsExporting(false);
-      });
+    try {
+      await exportReport(format);
+      setIsExportModalOpen(false);
+    } catch (error) {
+      alert('Erreur lors de l\'export');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (

@@ -43,7 +43,7 @@ export default function DriverExpensesPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {expenses.map((expense) => {
+          {expenses.map((expense: any) => {
             const category = CATEGORY_LABELS[expense.category] || CATEGORY_LABELS.OTHER;
             return (
               <Link

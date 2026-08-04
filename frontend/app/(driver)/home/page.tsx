@@ -80,7 +80,7 @@ export default function DriverHomePage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {vehicles.map((item) => (
+              {vehicles.map((item: any) => (
                 <Link
                   key={item.id}
                   href={`/vehicles/${item.vehicle.id}/revenues`}
