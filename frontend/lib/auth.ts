@@ -44,7 +44,7 @@ export async function getUserById(userId: string) {
 
 export async function getUserByPhone(phone: string) {
   const result = await query(
-    'SELECT id, phone, password, name, role FROM users WHERE phone = $1',
+    'SELECT id, phone, password_hash, name, role FROM users WHERE phone = $1',
     [phone]
   );
   return result.rows[0] || null;

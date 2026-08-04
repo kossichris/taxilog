@@ -36,9 +36,10 @@ export async function GET(
       );
 
       const result = await query(
-        `SELECT r.*, d.name as driver_name
+        `SELECT r.*, u.name as driver_name
          FROM revenues r
          LEFT JOIN drivers d ON r.driver_id = d.id
+         LEFT JOIN users u ON d.user_id = u.id
          WHERE r.vehicle_id = $1
          ORDER BY r.created_at DESC
          LIMIT $2 OFFSET $3`,
@@ -57,9 +58,10 @@ export async function GET(
     } else {
       // All revenues
       const result = await query(
-        `SELECT r.*, d.name as driver_name
+        `SELECT r.*, u.name as driver_name
          FROM revenues r
          LEFT JOIN drivers d ON r.driver_id = d.id
+         LEFT JOIN users u ON d.user_id = u.id
          WHERE r.vehicle_id = $1
          ORDER BY r.created_at DESC`,
         [(await params).vehicleId]

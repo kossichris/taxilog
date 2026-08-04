@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   try {
     // Get revenues for this driver
     const result = await query(
-      `SELECT r.*, d.name as driver_name, v.plate as vehicle_plate
+      `SELECT r.*, u.name as driver_name, v.plate as vehicle_plate
        FROM revenues r
        INNER JOIN drivers d ON r.driver_id = d.id
        INNER JOIN vehicles v ON r.vehicle_id = v.id

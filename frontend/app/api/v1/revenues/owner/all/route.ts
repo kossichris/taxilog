@@ -10,10 +10,11 @@ export async function GET(request: NextRequest) {
 
   try {
     const result = await query(
-      `SELECT r.*, v.plate, d.name as driver_name
+      `SELECT r.*, v.plate, u.name as driver_name
        FROM revenues r
        JOIN vehicles v ON r.vehicle_id = v.id
        LEFT JOIN drivers d ON r.driver_id = d.id
+         LEFT JOIN users u ON d.user_id = u.id
        WHERE v.owner_id = $1
        ORDER BY r.created_at DESC`,
       [auth.user.id]

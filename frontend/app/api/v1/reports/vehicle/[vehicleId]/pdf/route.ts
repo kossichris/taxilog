@@ -25,9 +25,10 @@ export async function GET(
     const vehicle = vehicleCheck.rows[0];
 
     const revenuesResult = await query(
-      `SELECT r.*, d.name as driver_name
+      `SELECT r.*, u.name as driver_name
        FROM revenues r
        LEFT JOIN drivers d ON r.driver_id = d.id
+         LEFT JOIN users u ON d.user_id = u.id
        WHERE r.vehicle_id = $1 AND r.status = 'VALIDATED'
        ORDER BY r.created_at DESC`,
       [(await params).vehicleId]

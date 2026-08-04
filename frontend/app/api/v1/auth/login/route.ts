@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const isPasswordValid = await comparePassword(password, user.password);
+    const isPasswordValid = await comparePassword(password, user.password_hash);
     if (!isPasswordValid) {
       return NextResponse.json(
         { error: 'Mot de passe incorrect' },
@@ -32,8 +32,8 @@ export async function POST(request: NextRequest) {
     const refreshToken = generateRefreshToken(user.id);
 
     return NextResponse.json({
-      accessToken,
-      refreshToken,
+      access_token: accessToken,
+      refresh_token: refreshToken,
       user: {
         id: user.id,
         phone: user.phone,

@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     const newAccessToken = generateAccessToken(user.id, user.role);
 
     return NextResponse.json({
-      accessToken: newAccessToken,
+      access_token: newAccessToken,
       user,
     });
   } catch (error) {
