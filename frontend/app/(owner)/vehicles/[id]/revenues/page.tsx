@@ -31,6 +31,10 @@ export default function RevenuesPage() {
   const totalByMonth = filteredRevenues
     .reduce((sum, r) => sum + parseFloat(r.amount.toString()), 0);
 
+  const validatedByMonth = filteredRevenues
+    .filter(r => r.status === 'VALIDATED')
+    .reduce((sum, r) => sum + parseFloat(r.amount.toString()), 0);
+
   const getStatusBadge = (status: string) => {
     const badges = {
       PENDING: { bg: 'bg-yellow-100', text: 'text-yellow-700', label: 'En attente', icon: Clock },
@@ -173,8 +177,17 @@ export default function RevenuesPage() {
               )}
             </div>
             {filteredRevenues.length > 0 && (
-              <div className="text-lg font-bold text-emerald-600">
-                Total: {totalByMonth.toFixed(2)} F
+              <div className="flex gap-6 text-sm font-medium">
+                <div>
+                  <span className="text-gray-600">Total: </span>
+                  <span className="text-lg font-bold text-emerald-600">{totalByMonth.toFixed(2)} F</span>
+                </div>
+                {validatedByMonth > 0 && (
+                  <div>
+                    <span className="text-gray-600">Validé: </span>
+                    <span className="text-lg font-bold text-green-600">{validatedByMonth.toFixed(2)} F</span>
+                  </div>
+                )}
               </div>
             )}
           </div>

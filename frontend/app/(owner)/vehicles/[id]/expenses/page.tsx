@@ -40,6 +40,10 @@ export default function ExpensesPage() {
   const totalByMonth = filteredExpenses
     .reduce((sum, e) => sum + parseFloat(e.amount.toString()), 0);
 
+  const validatedByMonth = filteredExpenses
+    .filter(e => e.status === 'VALIDATED')
+    .reduce((sum, e) => sum + parseFloat(e.amount.toString()), 0);
+
   const getStatusBadge = (status: string) => {
     const badges = {
       PENDING: { bg: 'bg-yellow-100', text: 'text-yellow-700', label: 'En attente', icon: Clock },
@@ -182,8 +186,17 @@ export default function ExpensesPage() {
               )}
             </div>
             {filteredExpenses.length > 0 && (
-              <div className="text-lg font-bold text-red-600">
-                Total: {totalByMonth.toFixed(2)} F
+              <div className="flex gap-6 text-sm font-medium">
+                <div>
+                  <span className="text-gray-600">Total: </span>
+                  <span className="text-lg font-bold text-red-600">{totalByMonth.toFixed(2)} F</span>
+                </div>
+                {validatedByMonth > 0 && (
+                  <div>
+                    <span className="text-gray-600">Validé: </span>
+                    <span className="text-lg font-bold text-green-600">{validatedByMonth.toFixed(2)} F</span>
+                  </div>
+                )}
               </div>
             )}
           </div>
