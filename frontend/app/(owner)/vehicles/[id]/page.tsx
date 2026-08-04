@@ -166,20 +166,20 @@ export default function VehicleDetailPage() {
         </div>
 
         {/* Actions */}
-        <div className="p-6 sm:p-8 border-t border-gray-200 flex flex-col sm:flex-row gap-3">
+        <div className="p-6 sm:p-8 border-t border-gray-200 flex gap-2">
           <Link
             href={`/vehicles/${vehicle.id}/edit`}
-            className="flex-1 flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-700 text-white font-semibold py-3 px-6 rounded-lg transition"
+            className="flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2 px-4 rounded-lg transition text-sm"
           >
-            <Edit2 size={18} />
+            <Edit2 size={16} />
             Éditer
           </Link>
           <button
             onClick={handleDeleteClick}
             disabled={deleteMutation.isPending}
-            className="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white font-semibold py-3 px-6 rounded-lg transition"
+            className="flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white font-semibold py-2 px-4 rounded-lg transition text-sm"
           >
-            <Trash2 size={18} />
+            <Trash2 size={16} />
             {deleteMutation.isPending ? 'Suppression...' : 'Désactiver'}
           </button>
         </div>
