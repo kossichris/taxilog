@@ -1,15 +1,32 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
-import { DollarSign, Banknote, TrendingUp, Car, Plus } from 'lucide-react';
+import { DollarSign, Banknote, TrendingUp, Car, Plus, FileText } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
-import { useGetOwnerTotalRevenues } from '@/hooks/useRevenues';
+import { useGetOwnerTotalRevenues, useExportOwnerReport } from '@/hooks/useRevenues';
 import { useGetOwnerTotalExpenses } from '@/hooks/useExpenses';
+import ExportModal from '@/components/ExportModal';
 
 export default function DashboardPage() {
   const user = useAuthStore((state) => state.user);
   const { data: totalRevenues = 0 } = useGetOwnerTotalRevenues();
   const { data: totalExpenses = 0 } = useGetOwnerTotalExpenses();
+  const exportReport = useExportOwnerReport();
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExport = async (format: 'pdf' | 'excel') => {
+    setIsExporting(true);
+    try {
+      await exportReport(format);
+      setIsExportModalOpen(false);
+    } catch (err) {
+      alert('Erreur lors de l\'export');
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const netProfit = totalRevenues - totalExpenses;
 
@@ -46,6 +63,17 @@ export default function DashboardPage() {
       <div className="bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 rounded-lg border border-amber-200 p-8">
         <h1 className="text-4xl sm:text-5xl font-bold text-gray-800 mb-2">Bienvenue, {user?.name} 👋</h1>
         <p className="text-gray-600 text-lg">Vue d'ensemble de vos véhicules et finances</p>
+      </div>
+
+      {/* Report Button */}
+      <div className="flex justify-end mb-6">
+        <button
+          onClick={() => setIsExportModalOpen(true)}
+          className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded-lg transition text-sm"
+        >
+          <FileText size={16} />
+          Rapport complet
+        </button>
       </div>
 
       {/* Stats Grid */}
@@ -117,6 +145,13 @@ export default function DashboardPage() {
           </Link>
         </div>
       </div>
+
+      <ExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        onExport={handleExport}
+        isLoading={isExporting}
+      />
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { VehiclesModule } from './vehicles/vehicles.module';
 import { DriversModule } from './drivers/drivers.module';
 import { RevenuesModule } from './revenues/revenues.module';
 import { ExpensesModule } from './expenses/expenses.module';
+import { ReportsModule } from './reports/reports.module';
 import { User } from './users/entities/user.entity';
 import { Vehicle } from './vehicles/entities/vehicle.entity';
 import { Driver } from './drivers/entities/driver.entity';
@@ -35,6 +36,7 @@ import { Expense } from './expenses/entities/expense.entity';
     DriversModule,
     RevenuesModule,
     ExpensesModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
