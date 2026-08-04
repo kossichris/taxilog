@@ -53,8 +53,18 @@ export class ExpensesController {
   @Roles(Role.OWNER)
   async getVehicleExpenses(
     @Param('vehicleId') vehicleId: string,
-    @Request() req: any,
+    @Query('page') page?: string,
+    @Request() req?: any,
   ) {
+    if (page) {
+      const limit = 20;
+      return this.expensesService.getVehicleExpensesPaginated(
+        vehicleId,
+        req.user.id,
+        parseInt(page),
+        limit,
+      );
+    }
     return this.expensesService.getVehicleExpenses(vehicleId, req.user.id);
   }
 

@@ -11,6 +11,16 @@ export function useGetVehicleExpenses(vehicleId: string) {
   });
 }
 
+export function useGetVehicleExpensesPaginated(vehicleId: string, page: number = 1) {
+  return useQuery({
+    queryKey: ['expenses', vehicleId, 'paginated', page],
+    queryFn: async () => {
+      const response = await api.get(`/api/v1/expenses/vehicles/${vehicleId}?page=${page}`);
+      return response.data;
+    },
+  });
+}
+
 export function useCreateExpense(vehicleId: string) {
   const queryClient = useQueryClient();
 

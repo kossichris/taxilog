@@ -4,13 +4,17 @@ import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { DollarSign, ArrowLeft, Plus, Check, Clock, X, Trash2, CheckCircle2, XCircle, Download } from 'lucide-react';
-import { useGetVehicleRevenues, useValidateRevenue, useDeleteRevenue, useSignRevenue, useRejectRevenue, useExportRevenues } from '@/hooks/useRevenues';
+import { useGetVehicleRevenuesPaginated, useValidateRevenue, useDeleteRevenue, useSignRevenue, useRejectRevenue, useExportRevenues } from '@/hooks/useRevenues';
+import { formatNumber } from '@/lib/formatNumber';
+import Pagination from '@/components/Pagination';
 import ConfirmModal from '@/components/ConfirmModal';
 import ExportModal from '@/components/ExportModal';
 
 export default function RevenuesPage() {
   const { id } = useParams();
-  const { data: revenues, isLoading, error } = useGetVehicleRevenues(id as string);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [filterMonth, setFilterMonth] = useState<string>('');
+  const { data: paginatedData, isLoading, error } = useGetVehicleRevenuesPaginated(id as string, currentPage);
   const validateMutation = useValidateRevenue(id as string);
   const deleteMutation = useDeleteRevenue(id as string);
   const signMutation = useSignRevenue();
@@ -20,9 +24,12 @@ export default function RevenuesPage() {
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [selectedRevenueId, setSelectedRevenueId] = useState<string | null>(null);
-  const [filterMonth, setFilterMonth] = useState<string>('');
 
-  const filteredRevenues = revenues?.filter((revenue) => {
+  const revenues = paginatedData?.data || [];
+  const totalItems = paginatedData?.total || 0;
+  const totalPages = paginatedData?.pages || 1;
+
+  const filteredRevenues = revenues.filter((revenue) => {
     if (!filterMonth) return true;
     const revenueDate = new Date(revenue.date);
     const [year, month] = filterMonth.split('-');
@@ -30,7 +37,7 @@ export default function RevenuesPage() {
       revenueDate.getFullYear().toString() === year &&
       (revenueDate.getMonth() + 1).toString().padStart(2, '0') === month
     );
-  }) || [];
+  });
 
   const totalByMonth = filteredRevenues
     .reduce((sum, r) => sum + parseFloat(r.amount.toString()), 0);
@@ -109,40 +116,24 @@ export default function RevenuesPage() {
     }
   };
 
-  const handleDeleteClick = (revenueId: string) => {
-    setSelectedRevenueId(revenueId);
-    setIsModalOpen(true);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!selectedRevenueId) return;
+  const handleDelete = async (revenueId: string) => {
     try {
-      await deleteMutation.mutateAsync(selectedRevenueId);
-      setIsModalOpen(false);
-      setSelectedRevenueId(null);
+      await deleteMutation.mutateAsync(revenueId);
     } catch (err) {
       alert('Erreur lors de la suppression');
     }
-  };
-
-  const handleCancelDelete = () => {
     setIsModalOpen(false);
-    setSelectedRevenueId(null);
   };
 
   const handleExport = async (format: 'pdf' | 'excel') => {
     setIsExporting(true);
     try {
-      const startDate = filterMonth
-        ? `${filterMonth}-01`
-        : new Date(Math.min(...revenues!.map(r => new Date(r.date).getTime())))
-            .toISOString()
-            .split('T')[0];
-      const endDate = filterMonth
-        ? new Date(filterMonth + '-01T00:00:00').toISOString().split('T')[0]
-        : new Date().toISOString().split('T')[0];
-
-      await exportRevenues(format, startDate, endDate);
+      const today = new Date().toISOString().split('T')[0];
+      const lastMonth = new Date(new Date().setMonth(new Date().getMonth() - 1))
+        .toISOString()
+        .split('T')[0];
+      await exportRevenues(format, lastMonth, today);
+      setIsExportModalOpen(false);
     } catch (err) {
       alert('Erreur lors de l\'export');
     } finally {
@@ -152,168 +143,137 @@ export default function RevenuesPage() {
 
   return (
     <div>
-      {/* Back button */}
-      <div className="mb-6">
-        <Link href={`/vehicles/${id}`} className="inline-flex items-center gap-2 text-amber-600 hover:text-amber-700 font-medium transition">
-          <ArrowLeft size={20} />
-          Retour aux détails
-        </Link>
-      </div>
+      <Link href={`/vehicles/${id}`} className="inline-flex items-center gap-2 text-emerald-600 hover:text-emerald-700 mb-6">
+        <ArrowLeft size={20} />
+        Retour au véhicule
+      </Link>
 
-      <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-100">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-emerald-50 via-green-50 to-emerald-50 border-b border-emerald-200 p-6 sm:p-8 flex items-center justify-between">
-          <div className="flex items-start gap-4">
-            <div className="bg-emerald-600 p-4 rounded-lg">
-              <DollarSign size={32} className="text-white" />
-            </div>
-            <div>
-              <h1 className="text-3xl sm:text-4xl font-bold text-emerald-600">Recettes</h1>
-            </div>
+      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-2xl font-bold text-gray-800">Recettes</h1>
+          <button
+            onClick={() => setIsExportModalOpen(true)}
+            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded-lg text-sm"
+          >
+            <Download size={16} />
+            Exporter
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block text-sm text-gray-600 mb-1">Total</label>
+            <p className="text-2xl font-bold text-gray-800">{formatNumber(totalByMonth)} F</p>
           </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setIsExportModalOpen(true)}
-              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded-lg transition"
-            >
-              <Download size={18} />
-              Exporter
-            </button>
-            <Link
-              href={`/vehicles/${id}/revenues/new`}
-              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded-lg transition"
-            >
-              <Plus size={18} />
-              Ajouter
-            </Link>
+          <div>
+            <label className="block text-sm text-gray-600 mb-1">Validé</label>
+            <p className="text-2xl font-bold text-green-600">{formatNumber(validatedByMonth)} F</p>
           </div>
         </div>
 
-        {/* Filter & Total */}
-        {revenues && (
-          <div className="px-6 sm:px-8 py-4 border-b border-gray-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <label className="text-sm font-medium text-gray-700">Filtrer par mois:</label>
-              <input
-                type="month"
-                value={filterMonth}
-                onChange={(e) => setFilterMonth(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
-              />
-              {filterMonth && (
-                <button
-                  onClick={() => setFilterMonth('')}
-                  className="text-sm text-emerald-600 hover:text-emerald-700 font-medium"
-                >
-                  Réinitialiser
-                </button>
-              )}
-            </div>
-            {filteredRevenues.length > 0 && (
-              <div className="flex gap-6 text-sm font-medium">
-                <div>
-                  <span className="text-gray-600">Total: </span>
-                  <span className="text-lg font-bold text-emerald-600">{totalByMonth.toFixed(2)} F</span>
+        <select
+          value={filterMonth}
+          onChange={(e) => {
+            setFilterMonth(e.target.value);
+            setCurrentPage(1);
+          }}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+        >
+          <option value="">Tous les mois</option>
+          {Array.from({ length: 12 }, (_, i) => {
+            const date = new Date();
+            date.setMonth(date.getMonth() - i);
+            const value = date.toISOString().split('T')[0].slice(0, 7);
+            const label = date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+            return (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            );
+          })}
+        </select>
+      </div>
+
+      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        {filteredRevenues.length === 0 ? (
+          <div className="p-6 text-center text-gray-600">Aucune recette trouvée</div>
+        ) : (
+          <div className="divide-y">
+            {filteredRevenues.map((revenue) => (
+              <div key={revenue.id} className="p-4 hover:bg-gray-50 flex justify-between items-center">
+                <div className="flex-1">
+                  <p className="font-semibold text-gray-800">{revenue.driver?.name || 'N/A'}</p>
+                  <p className="text-sm text-gray-600">{new Date(revenue.date).toLocaleDateString('fr-FR')}</p>
+                  {getStatusBadge(revenue.status)}
                 </div>
-                {validatedByMonth > 0 && (
-                  <div>
-                    <span className="text-gray-600">Validé: </span>
-                    <span className="text-lg font-bold text-green-600">{validatedByMonth.toFixed(2)} F</span>
-                  </div>
-                )}
+                <div className="text-right mr-4">
+                  <p className="font-bold text-gray-800">{formatNumber(parseFloat(revenue.amount.toString()))} F</p>
+                </div>
+                <div className="flex gap-2">
+                  {revenue.status === 'PENDING' && (
+                    <>
+                      <button
+                        onClick={() => handleSign(revenue.id)}
+                        className="p-2 hover:bg-blue-100 rounded"
+                        title="Signer"
+                      >
+                        <Check size={18} className="text-blue-600" />
+                      </button>
+                    </>
+                  )}
+                  {revenue.status === 'SIGNED' && (
+                    <>
+                      <button
+                        onClick={() => handleValidate(revenue.id)}
+                        className="p-2 hover:bg-green-100 rounded"
+                        title="Valider"
+                      >
+                        <CheckCircle2 size={18} className="text-green-600" />
+                      </button>
+                      <button
+                        onClick={() => handleReject(revenue.id)}
+                        className="p-2 hover:bg-red-100 rounded"
+                        title="Rejeter"
+                      >
+                        <XCircle size={18} className="text-red-600" />
+                      </button>
+                    </>
+                  )}
+                  <button
+                    onClick={() => {
+                      setSelectedRevenueId(revenue.id);
+                      setIsModalOpen(true);
+                    }}
+                    className="p-2 hover:bg-red-100 rounded"
+                    title="Supprimer"
+                  >
+                    <Trash2 size={18} className="text-red-600" />
+                  </button>
+                </div>
               </div>
-            )}
+            ))}
           </div>
         )}
-
-        {/* Content */}
-        <div className="p-6 sm:p-8">
-          {!filteredRevenues || filteredRevenues.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="w-16 h-16 bg-emerald-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <DollarSign size={32} className="text-emerald-600" />
-              </div>
-              <p className="text-gray-500 text-lg mb-6">Aucune recette enregistrée</p>
-              <Link
-                href={`/vehicles/${id}/revenues/new`}
-                className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-6 rounded-lg transition"
-              >
-                <Plus size={20} />
-                Créer une recette
-              </Link>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {filteredRevenues.map((revenue) => (
-                <div key={revenue.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-emerald-300 transition">
-                  <div className="flex-1 mb-4 sm:mb-0">
-                    <div className="flex items-center gap-3 mb-2">
-                      <p className="font-semibold text-gray-800">{revenue.driver.name}</p>
-                      {getStatusBadge(revenue.status)}
-                    </div>
-                    <p className="text-sm text-gray-600">{revenue.description}</p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {new Date(revenue.date).toLocaleDateString('fr-FR')}
-                      {revenue.signed_at && ` • Signé le ${new Date(revenue.signed_at).toLocaleDateString('fr-FR')}`}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3 w-full">
-                    <p className="text-lg font-bold text-emerald-600">{revenue.amount} F</p>
-                    <div className="flex items-center gap-1 ml-auto">
-                      {revenue.status === 'PENDING' && (
-                        <button
-                          onClick={() => handleSign(revenue.id)}
-                          disabled={signMutation.isPending}
-                          className="text-amber-600 hover:bg-amber-50 p-1.5 rounded transition disabled:text-gray-400"
-                          title="Signer cette recette"
-                        >
-                          <Check size={18} />
-                        </button>
-                      )}
-                      {revenue.status === 'SIGNED' && (
-                        <>
-                          <button
-                            onClick={() => handleValidate(revenue.id)}
-                            disabled={validateMutation.isPending}
-                            className="text-emerald-600 hover:bg-emerald-50 p-1.5 rounded transition disabled:text-gray-400"
-                            title="Valider cette recette"
-                          >
-                            <CheckCircle2 size={18} />
-                          </button>
-                          <button
-                            onClick={() => handleReject(revenue.id)}
-                            disabled={rejectMutation.isPending}
-                            className="text-orange-600 hover:bg-orange-50 p-1.5 rounded transition disabled:text-gray-400"
-                            title="Rejeter cette recette"
-                          >
-                            <XCircle size={18} />
-                          </button>
-                        </>
-                      )}
-                      <button
-                        onClick={() => handleDeleteClick(revenue.id)}
-                        disabled={deleteMutation.isPending}
-                        className="text-red-600 hover:bg-red-50 p-1.5 rounded transition disabled:text-gray-400"
-                        title="Supprimer cette recette"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       </div>
+
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={totalItems}
+        itemsPerPage={20}
+        onPageChange={setCurrentPage}
+      />
 
       <ConfirmModal
         isOpen={isModalOpen}
         title="Supprimer la recette"
         message="Êtes-vous sûr de vouloir supprimer cette recette ?"
-        onConfirm={handleConfirmDelete}
-        onCancel={handleCancelDelete}
-        isLoading={deleteMutation.isPending}
+        onConfirm={() => {
+          if (selectedRevenueId) {
+            handleDelete(selectedRevenueId);
+          }
+        }}
+        onCancel={() => setIsModalOpen(false)}
         confirmText="Supprimer"
         cancelText="Annuler"
         isDangerous={true}

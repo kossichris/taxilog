@@ -3,35 +3,42 @@
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { Banknote, ArrowLeft, Plus, Trash2, Check, Clock, X, CheckCircle2, XCircle, Download } from 'lucide-react';
-import { useGetVehicleExpenses, useDeleteExpense, useSignExpense, useValidateExpense, useRejectExpense, useExportExpenses } from '@/hooks/useExpenses';
+import { Banknote, ArrowLeft, Check, Clock, X, Trash2, CheckCircle2, XCircle, Download, Fuel, Wrench, Shield, AlertCircle, ParkingCircle } from 'lucide-react';
+import { useGetVehicleExpensesPaginated, useDeleteExpense, useSignExpense, useValidateExpense, useRejectExpense, useExportExpenses } from '@/hooks/useExpenses';
+import { formatNumber } from '@/lib/formatNumber';
+import Pagination from '@/components/Pagination';
 import ConfirmModal from '@/components/ConfirmModal';
 import ExportModal from '@/components/ExportModal';
 
-const CATEGORY_LABELS: Record<string, { label: string; icon: string }> = {
-  FUEL: { label: 'Carburant', icon: '⛽' },
-  MAINTENANCE: { label: 'Maintenance', icon: '🔧' },
-  INSURANCE: { label: 'Assurance', icon: '🛡️' },
-  TOLL: { label: 'Péage', icon: '🛣️' },
-  PARKING: { label: 'Parking', icon: '🅿️' },
-  OTHER: { label: 'Autre', icon: '📌' },
+const categoryIcons: Record<string, any> = {
+  FUEL: Fuel,
+  MAINTENANCE: Wrench,
+  INSURANCE: Shield,
+  TOLL: AlertCircle,
+  PARKING: ParkingCircle,
+  OTHER: Banknote,
 };
 
 export default function ExpensesPage() {
   const { id } = useParams();
-  const { data: expenses, isLoading, error } = useGetVehicleExpenses(id as string);
-  const deleteMutation = useDeleteExpense(id as string);
-  const signMutation = useSignExpense();
-  const validateMutation = useValidateExpense(id as string);
-  const rejectMutation = useRejectExpense(id as string);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [filterMonth, setFilterMonth] = useState<string>('');
+  const { data: paginatedData, isLoading, error } = useGetVehicleExpensesPaginated(id as string, currentPage);
+  const deleteExpense = useDeleteExpense(id as string);
+  const signExpense = useSignExpense();
+  const validateExpense = useValidateExpense(id as string);
+  const rejectExpense = useRejectExpense(id as string);
   const exportExpenses = useExportExpenses(id as string);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [selectedExpenseId, setSelectedExpenseId] = useState<string | null>(null);
-  const [filterMonth, setFilterMonth] = useState<string>('');
 
-  const filteredExpenses = expenses?.filter((expense) => {
+  const expenses = paginatedData?.data || [];
+  const totalItems = paginatedData?.total || 0;
+  const totalPages = paginatedData?.pages || 1;
+
+  const filteredExpenses = expenses.filter((expense) => {
     if (!filterMonth) return true;
     const expenseDate = new Date(expense.date);
     const [year, month] = filterMonth.split('-');
@@ -39,7 +46,7 @@ export default function ExpensesPage() {
       expenseDate.getFullYear().toString() === year &&
       (expenseDate.getMonth() + 1).toString().padStart(2, '0') === month
     );
-  }) || [];
+  });
 
   const totalByMonth = filteredExpenses
     .reduce((sum, e) => sum + parseFloat(e.amount.toString()), 0);
@@ -65,46 +72,10 @@ export default function ExpensesPage() {
     );
   };
 
-  const handleSign = async (expenseId: string) => {
-    try {
-      const canvas = document.createElement('canvas');
-      canvas.width = 400;
-      canvas.height = 150;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#333';
-        ctx.font = '20px Arial';
-        ctx.fillText('Signé par owner', 50, 50);
-        const signature = canvas.toDataURL('image/png');
-        await signMutation.mutateAsync({ expenseId, signature });
-      }
-    } catch (err) {
-      alert('Erreur lors de la signature');
-    }
-  };
-
-  const handleValidate = async (expenseId: string) => {
-    try {
-      await validateMutation.mutateAsync(expenseId);
-    } catch (err) {
-      alert('Erreur lors de la validation');
-    }
-  };
-
-  const handleReject = async (expenseId: string) => {
-    try {
-      await rejectMutation.mutateAsync(expenseId);
-    } catch (err) {
-      alert('Erreur lors du rejet');
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="text-center py-12">
-        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-red-500"></div>
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div>
         <p className="mt-2 text-gray-600">Chargement des dépenses...</p>
       </div>
     );
@@ -118,40 +89,60 @@ export default function ExpensesPage() {
     );
   }
 
-  const handleDeleteClick = (expenseId: string) => {
-    setSelectedExpenseId(expenseId);
-    setIsModalOpen(true);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!selectedExpenseId) return;
+  const handleSign = async (expenseId: string) => {
     try {
-      await deleteMutation.mutateAsync(selectedExpenseId);
-      setIsModalOpen(false);
-      setSelectedExpenseId(null);
+      const canvas = document.createElement('canvas');
+      canvas.width = 400;
+      canvas.height = 150;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#333';
+        ctx.font = '20px Arial';
+        ctx.fillText('Signé par owner', 50, 50);
+        const signature = canvas.toDataURL('image/png');
+        await signExpense.mutateAsync({ expenseId, signature });
+      }
     } catch (err) {
-      alert('Erreur lors de la suppression');
+      alert('Erreur lors de la signature');
     }
   };
 
-  const handleCancelDelete = () => {
+  const handleValidate = async (expenseId: string) => {
+    try {
+      await validateExpense.mutateAsync(expenseId);
+    } catch (err) {
+      alert('Erreur lors de la validation');
+    }
+  };
+
+  const handleReject = async (expenseId: string) => {
+    try {
+      await rejectExpense.mutateAsync(expenseId);
+    } catch (err) {
+      alert('Erreur lors du rejet');
+    }
+  };
+
+  const handleDelete = async (expenseId: string) => {
+    try {
+      await deleteExpense.mutateAsync(expenseId);
+    } catch (err) {
+      alert('Erreur lors de la suppression');
+    }
     setIsModalOpen(false);
-    setSelectedExpenseId(null);
   };
 
   const handleExport = async (format: 'pdf' | 'excel') => {
     setIsExporting(true);
     try {
-      const startDate = filterMonth
-        ? `${filterMonth}-01`
-        : new Date(Math.min(...expenses!.map(e => new Date(e.date).getTime())))
-            .toISOString()
-            .split('T')[0];
-      const endDate = filterMonth
-        ? new Date(filterMonth + '-01T00:00:00').toISOString().split('T')[0]
-        : new Date().toISOString().split('T')[0];
-
-      await exportExpenses(format, startDate, endDate);
+      const today = new Date().toISOString().split('T')[0];
+      const lastMonth = new Date(new Date().setMonth(new Date().getMonth() - 1))
+        .toISOString()
+        .split('T')[0];
+      await exportExpenses(format, lastMonth, today);
+      setIsExportModalOpen(false);
     } catch (err) {
       alert('Erreur lors de l\'export');
     } finally {
@@ -161,178 +152,143 @@ export default function ExpensesPage() {
 
   return (
     <div>
-      {/* Back button */}
-      <div className="mb-6">
-        <Link href={`/vehicles/${id}`} className="inline-flex items-center gap-2 text-amber-600 hover:text-amber-700 font-medium transition">
-          <ArrowLeft size={20} />
-          Retour aux détails
-        </Link>
-      </div>
+      <Link href={`/vehicles/${id}`} className="inline-flex items-center gap-2 text-amber-600 hover:text-amber-700 mb-6">
+        <ArrowLeft size={20} />
+        Retour au véhicule
+      </Link>
 
-      <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-100">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-red-50 via-orange-50 to-red-50 border-b border-red-200 p-6 sm:p-8 flex items-center justify-between">
-          <div className="flex items-start gap-4">
-            <div className="bg-red-600 p-4 rounded-lg">
-              <Banknote size={32} className="text-white" />
-            </div>
-            <div>
-              <h1 className="text-3xl sm:text-4xl font-bold text-red-600">Dépenses</h1>
-            </div>
+      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-2xl font-bold text-gray-800">Dépenses</h1>
+          <button
+            onClick={() => setIsExportModalOpen(true)}
+            className="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2 px-4 rounded-lg text-sm"
+          >
+            <Download size={16} />
+            Exporter
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block text-sm text-gray-600 mb-1">Total</label>
+            <p className="text-2xl font-bold text-gray-800">{formatNumber(totalByMonth)} F</p>
           </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setIsExportModalOpen(true)}
-              className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition"
-            >
-              <Download size={18} />
-              Exporter
-            </button>
-            <Link
-              href={`/vehicles/${id}/expenses/new`}
-              className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition"
-            >
-              <Plus size={18} />
-              Ajouter
-            </Link>
+          <div>
+            <label className="block text-sm text-gray-600 mb-1">Validé</label>
+            <p className="text-2xl font-bold text-green-600">{formatNumber(validatedByMonth)} F</p>
           </div>
         </div>
 
-        {/* Filter & Total */}
-        {expenses && (
-          <div className="px-6 sm:px-8 py-4 border-b border-gray-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-gray-50">
-            <div className="flex items-center gap-3">
-              <label className="text-sm font-medium text-gray-700">Filtrer par mois:</label>
-              <input
-                type="month"
-                value={filterMonth}
-                onChange={(e) => setFilterMonth(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none"
-              />
-              {filterMonth && (
-                <button
-                  onClick={() => setFilterMonth('')}
-                  className="text-sm text-red-600 hover:text-red-700 font-medium"
-                >
-                  Réinitialiser
-                </button>
-              )}
-            </div>
-            {filteredExpenses.length > 0 && (
-              <div className="flex gap-6 text-sm font-medium">
-                <div>
-                  <span className="text-gray-600">Total: </span>
-                  <span className="text-lg font-bold text-red-600">{totalByMonth.toFixed(2)} F</span>
-                </div>
-                {validatedByMonth > 0 && (
-                  <div>
-                    <span className="text-gray-600">Validé: </span>
-                    <span className="text-lg font-bold text-green-600">{validatedByMonth.toFixed(2)} F</span>
+        <select
+          value={filterMonth}
+          onChange={(e) => {
+            setFilterMonth(e.target.value);
+            setCurrentPage(1);
+          }}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+        >
+          <option value="">Tous les mois</option>
+          {Array.from({ length: 12 }, (_, i) => {
+            const date = new Date();
+            date.setMonth(date.getMonth() - i);
+            const value = date.toISOString().split('T')[0].slice(0, 7);
+            const label = date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+            return (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            );
+          })}
+        </select>
+      </div>
+
+      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        {filteredExpenses.length === 0 ? (
+          <div className="p-6 text-center text-gray-600">Aucune dépense trouvée</div>
+        ) : (
+          <div className="divide-y">
+            {filteredExpenses.map((expense) => {
+              const Icon = categoryIcons[expense.category] || Banknote;
+              return (
+                <div key={expense.id} className="p-4 hover:bg-gray-50 flex justify-between items-center">
+                  <div className="flex-1 flex items-center gap-3">
+                    <Icon size={20} className="text-gray-600" />
+                    <div>
+                      <p className="font-semibold text-gray-800">{expense.category}</p>
+                      <p className="text-sm text-gray-600">{new Date(expense.date).toLocaleDateString('fr-FR')}</p>
+                      {getStatusBadge(expense.status)}
+                    </div>
                   </div>
-                )}
-              </div>
-            )}
+                  <div className="text-right mr-4">
+                    <p className="font-bold text-gray-800">{formatNumber(parseFloat(expense.amount.toString()))} F</p>
+                  </div>
+                  <div className="flex gap-2">
+                    {expense.status === 'PENDING' && (
+                      <>
+                        <button
+                          onClick={() => handleSign(expense.id)}
+                          className="p-2 hover:bg-blue-100 rounded"
+                          title="Signer"
+                        >
+                          <Check size={18} className="text-blue-600" />
+                        </button>
+                      </>
+                    )}
+                    {expense.status === 'SIGNED' && (
+                      <>
+                        <button
+                          onClick={() => handleValidate(expense.id)}
+                          className="p-2 hover:bg-green-100 rounded"
+                          title="Valider"
+                        >
+                          <CheckCircle2 size={18} className="text-green-600" />
+                        </button>
+                        <button
+                          onClick={() => handleReject(expense.id)}
+                          className="p-2 hover:bg-red-100 rounded"
+                          title="Rejeter"
+                        >
+                          <XCircle size={18} className="text-red-600" />
+                        </button>
+                      </>
+                    )}
+                    <button
+                      onClick={() => {
+                        setSelectedExpenseId(expense.id);
+                        setIsModalOpen(true);
+                      }}
+                      className="p-2 hover:bg-red-100 rounded"
+                      title="Supprimer"
+                    >
+                      <Trash2 size={18} className="text-red-600" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
-
-        {/* Content */}
-        <div className="p-6 sm:p-8">
-          {!filteredExpenses || filteredExpenses.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="w-16 h-16 bg-red-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <Banknote size={32} className="text-red-600" />
-              </div>
-              <p className="text-gray-500 text-lg mb-6">Aucune dépense enregistrée</p>
-              <Link
-                href={`/vehicles/${id}/expenses/new`}
-                className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition"
-              >
-                <Plus size={20} />
-                Créer une dépense
-              </Link>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {filteredExpenses.map((expense) => {
-                const category = CATEGORY_LABELS[expense.category] || CATEGORY_LABELS.OTHER;
-                return (
-                  <div key={expense.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-red-300 transition">
-                    <div className="flex-1 mb-4 sm:mb-0">
-                      <div className="flex items-center gap-3 mb-2">
-                        <span className="text-2xl">{category.icon}</span>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <p className="font-semibold text-gray-800">{category.label}</p>
-                            {getStatusBadge(expense.status)}
-                          </div>
-                          <p className="text-xs text-gray-500">
-                            {new Date(expense.date).toLocaleDateString('fr-FR')}
-                            {expense.signed_at && ` • Signé le ${new Date(expense.signed_at).toLocaleDateString('fr-FR')}`}
-                          </p>
-                        </div>
-                      </div>
-                      {expense.description && (
-                        <p className="text-sm text-gray-600 ml-11">{expense.description}</p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3 w-full">
-                      <p className="text-lg font-bold text-red-600">{expense.amount} F</p>
-                      <div className="flex items-center gap-1 ml-auto">
-                        {expense.status === 'PENDING' && (
-                          <button
-                            onClick={() => handleSign(expense.id)}
-                            disabled={signMutation.isPending}
-                            className="text-amber-600 hover:bg-amber-50 p-1.5 rounded transition disabled:text-gray-400"
-                            title="Signer cette dépense"
-                          >
-                            <Check size={18} />
-                          </button>
-                        )}
-                        {expense.status === 'SIGNED' && (
-                          <>
-                            <button
-                              onClick={() => handleValidate(expense.id)}
-                              disabled={validateMutation.isPending}
-                              className="text-emerald-600 hover:bg-emerald-50 p-1.5 rounded transition disabled:text-gray-400"
-                              title="Valider cette dépense"
-                            >
-                              <CheckCircle2 size={18} />
-                            </button>
-                            <button
-                              onClick={() => handleReject(expense.id)}
-                              disabled={rejectMutation.isPending}
-                              className="text-orange-600 hover:bg-orange-50 p-1.5 rounded transition disabled:text-gray-400"
-                              title="Rejeter cette dépense"
-                            >
-                              <XCircle size={18} />
-                            </button>
-                          </>
-                        )}
-                        <button
-                          onClick={() => handleDeleteClick(expense.id)}
-                          disabled={deleteMutation.isPending}
-                          className="text-red-600 hover:bg-red-50 p-1.5 rounded transition disabled:text-gray-400"
-                          title="Supprimer cette dépense"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
       </div>
+
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={totalItems}
+        itemsPerPage={20}
+        onPageChange={setCurrentPage}
+      />
 
       <ConfirmModal
         isOpen={isModalOpen}
         title="Supprimer la dépense"
         message="Êtes-vous sûr de vouloir supprimer cette dépense ?"
-        onConfirm={handleConfirmDelete}
-        onCancel={handleCancelDelete}
-        isLoading={deleteMutation.isPending}
+        onConfirm={() => {
+          if (selectedExpenseId) {
+            handleDelete(selectedExpenseId);
+          }
+        }}
+        onCancel={() => setIsModalOpen(false)}
         confirmText="Supprimer"
         cancelText="Annuler"
         isDangerous={true}

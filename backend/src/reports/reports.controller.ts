@@ -21,6 +21,44 @@ export class ReportsController {
     private exportService: ExportService,
   ) {}
 
+  @Get('vehicle/:vehicleId/:format')
+  @UseGuards(RolesGuard)
+  @Roles(Role.OWNER)
+  async exportVehicleReport(
+    @Param('vehicleId') vehicleId: string,
+    @Param('format') format: 'pdf' | 'excel',
+    @Response() res: any,
+    @Request() req: any,
+  ) {
+    const reportData = await this.reportsService.generateVehicleReport(
+      vehicleId,
+      req.user.id,
+    );
+
+    if (format === 'pdf') {
+      const pdf = await this.exportService.generateOwnerReportPDF(reportData);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="rapport_vehicule_${new Date().toISOString().split('T')[0]}.pdf"`,
+      );
+      res.send(pdf);
+    } else {
+      const excel = await this.exportService.generateOwnerReportExcel(
+        reportData,
+      );
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      );
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="rapport_vehicule_${new Date().toISOString().split('T')[0]}.xlsx"`,
+      );
+      res.send(excel);
+    }
+  }
+
   @Get('owner/:format')
   @UseGuards(RolesGuard)
   @Roles(Role.OWNER)

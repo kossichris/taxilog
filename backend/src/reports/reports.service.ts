@@ -40,6 +40,67 @@ export class ReportsService {
     private vehiclesRepository: Repository<Vehicle>,
   ) {}
 
+  async generateVehicleReport(vehicleId: string, ownerId: string): Promise<ReportData> {
+    const vehicle = await this.vehiclesRepository.findOne({
+      where: { id: vehicleId, owner_id: ownerId, active: true },
+    });
+
+    if (!vehicle) {
+      throw new NotFoundException('Véhicule non trouvé');
+    }
+
+    const revenues = await this.revenuesRepository.find({
+      where: { vehicle_id: vehicleId, owner_id: ownerId, active: true },
+      relations: ['vehicle', 'driver'],
+      order: { date: 'DESC' },
+    });
+
+    const expenses = await this.expensesRepository.find({
+      where: { vehicle_id: vehicleId, owner_id: ownerId, active: true },
+      relations: ['vehicle'],
+      order: { date: 'DESC' },
+    });
+
+    const totalRevenues = revenues.reduce(
+      (sum, r) => sum + parseFloat(r.amount.toString()),
+      0,
+    );
+    const totalExpenses = expenses.reduce(
+      (sum, e) => sum + parseFloat(e.amount.toString()),
+      0,
+    );
+    const totalProfit = totalRevenues - totalExpenses;
+
+    const items: ReportData['items'] = [
+      ...revenues.map((r) => ({
+        type: 'revenue' as const,
+        date: new Date(r.date).toLocaleDateString('fr-FR'),
+        vehicle: r.vehicle.plate,
+        description: r.description || r.driver.name,
+        amount: parseFloat(r.amount.toString()),
+        status: r.status,
+      })),
+      ...expenses.map((e) => ({
+        type: 'expense' as const,
+        date: new Date(e.date).toLocaleDateString('fr-FR'),
+        vehicle: e.vehicle.plate,
+        description: e.description || e.category,
+        amount: parseFloat(e.amount.toString()),
+        status: e.status,
+      })),
+    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    return {
+      ownerName: `${vehicle.plate} - ${vehicle.brand} ${vehicle.model}`,
+      generatedAt: new Date().toLocaleDateString('fr-FR'),
+      totalRevenues,
+      totalExpenses,
+      totalProfit,
+      monthlyData: [],
+      items,
+    };
+  }
+
   async generateOwnerReport(ownerId: string): Promise<ReportData> {
     const vehicles = await this.vehiclesRepository.find({
       where: { owner_id: ownerId, active: true },

@@ -3,11 +3,14 @@
 import { useState, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { Car, ArrowLeft, Edit2, Trash2, TrendingUp, DollarSign, Banknote, Users } from 'lucide-react';
+import { Car, ArrowLeft, Edit2, Trash2, TrendingUp, DollarSign, Banknote, Users, Download } from 'lucide-react';
 import { useGetVehicle, useDeleteVehicle } from '@/hooks/useVehicles';
 import { useGetVehicleRevenues } from '@/hooks/useRevenues';
 import { useGetVehicleExpenses } from '@/hooks/useExpenses';
+import { useExportVehicleReport } from '@/hooks/useRevenues';
+import { formatNumber } from '@/lib/formatNumber';
 import ConfirmModal from '@/components/ConfirmModal';
+import ExportModal from '@/components/ExportModal';
 
 export default function VehicleDetailPage() {
   const { id } = useParams();
@@ -15,7 +18,10 @@ export default function VehicleDetailPage() {
   const { data: revenues = [] } = useGetVehicleRevenues(id as string);
   const { data: expenses = [] } = useGetVehicleExpenses(id as string);
   const deleteMutation = useDeleteVehicle(id as string);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const exportReport = useExportVehicleReport(id as string);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const totals = useMemo(() => {
     const totalRevenues = (revenues || [])
@@ -47,7 +53,7 @@ export default function VehicleDetailPage() {
   }
 
   const handleDeleteClick = () => {
-    setIsModalOpen(true);
+    setIsDeleteModalOpen(true);
   };
 
   const handleConfirmDelete = async () => {
@@ -60,7 +66,21 @@ export default function VehicleDetailPage() {
   };
 
   const handleCancelDelete = () => {
-    setIsModalOpen(false);
+    setIsDeleteModalOpen(false);
+  };
+
+  const handleExportClick = (format: 'pdf' | 'excel') => {
+    setIsExporting(true);
+    exportReport(format)
+      .then(() => {
+        setIsExportModalOpen(false);
+      })
+      .catch(() => {
+        alert('Erreur lors de l\'export');
+      })
+      .finally(() => {
+        setIsExporting(false);
+      });
   };
 
   return (
@@ -115,17 +135,17 @@ export default function VehicleDetailPage() {
           <div className="mt-6 grid grid-cols-3 gap-8">
             <div>
               <p className="text-sm text-gray-500 mb-2">Recettes</p>
-              <p className="text-3xl font-bold text-gray-800">{totals.revenues.toFixed(2)}</p>
+              <p className="text-3xl font-bold text-gray-800 font-mono">{formatNumber(totals.revenues)}</p>
               <p className="text-xs text-gray-400">F</p>
             </div>
             <div>
               <p className="text-sm text-gray-500 mb-2">Dépenses</p>
-              <p className="text-3xl font-bold text-gray-800">{totals.expenses.toFixed(2)}</p>
+              <p className="text-3xl font-bold text-gray-800 font-mono">{formatNumber(totals.expenses)}</p>
               <p className="text-xs text-gray-400">F</p>
             </div>
             <div>
               <p className="text-sm text-gray-500 mb-2">Bénéfice Net</p>
-              <p className={`text-3xl font-bold ${totals.net >= 0 ? 'text-gray-800' : 'text-red-600'}`}>{totals.net.toFixed(2)}</p>
+              <p className={`text-3xl font-bold font-mono ${totals.net >= 0 ? 'text-gray-800' : 'text-red-600'}`}>{formatNumber(totals.net)}</p>
               <p className="text-xs text-gray-400">F</p>
             </div>
           </div>
@@ -175,6 +195,13 @@ export default function VehicleDetailPage() {
             Éditer
           </Link>
           <button
+            onClick={() => setIsExportModalOpen(true)}
+            className="flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2 px-4 rounded-lg transition text-sm"
+          >
+            <Download size={16} />
+            Export
+          </button>
+          <button
             onClick={handleDeleteClick}
             disabled={deleteMutation.isPending}
             className="flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white font-semibold py-2 px-4 rounded-lg transition text-sm"
@@ -186,7 +213,7 @@ export default function VehicleDetailPage() {
       </div>
 
       <ConfirmModal
-        isOpen={isModalOpen}
+        isOpen={isDeleteModalOpen}
         title="Désactiver le véhicule"
         message="Êtes-vous sûr de vouloir désactiver ce véhicule ?"
         onConfirm={handleConfirmDelete}
@@ -195,6 +222,13 @@ export default function VehicleDetailPage() {
         confirmText="Désactiver"
         cancelText="Annuler"
         isDangerous={true}
+      />
+
+      <ExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        onExport={handleExportClick}
+        isLoading={isExporting}
       />
     </div>
   );

@@ -69,6 +69,36 @@ export class RevenuesService {
     });
   }
 
+  async getVehicleRevenuesPaginated(
+    vehicleId: string,
+    ownerId: string,
+    page: number = 1,
+    limit: number = 20,
+  ): Promise<{ data: Revenue[]; total: number; page: number; limit: number; pages: number }> {
+    const vehicle = await this.vehiclesRepository.findOne({
+      where: { id: vehicleId, owner_id: ownerId },
+    });
+
+    if (!vehicle) {
+      throw new NotFoundException('Véhicule non trouvé');
+    }
+
+    const [data, total] = await this.revenuesRepository.findAndCount({
+      where: { vehicle_id: vehicleId, active: true },
+      order: { date: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      pages: Math.ceil(total / limit),
+    };
+  }
+
   async getDriverPendingRevenues(driverId: string): Promise<Revenue[]> {
     return this.revenuesRepository.find({
       where: { driver_id: driverId, status: 'PENDING', active: true },

@@ -6,9 +6,15 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
+  ValueTransformer,
 } from 'typeorm';
 import { Vehicle } from '../../vehicles/entities/vehicle.entity';
 import { User } from '../../users/entities/user.entity';
+
+const numericTransformer: ValueTransformer = {
+  to: (value: number) => value,
+  from: (value: any) => typeof value === 'string' ? parseFloat(value) : value,
+};
 
 @Entity('revenues')
 export class Revenue {
@@ -24,7 +30,7 @@ export class Revenue {
   @Column('uuid')
   owner_id: string;
 
-  @Column('decimal', { precision: 10, scale: 2 })
+  @Column('decimal', { precision: 10, scale: 2, transformer: numericTransformer })
   amount: number;
 
   @Column('varchar', { nullable: true })

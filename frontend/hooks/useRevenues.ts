@@ -31,6 +31,16 @@ export function useGetVehicleRevenues(vehicleId: string) {
   });
 }
 
+export function useGetVehicleRevenuesPaginated(vehicleId: string, page: number = 1) {
+  return useQuery({
+    queryKey: ['revenues', vehicleId, 'paginated', page],
+    queryFn: async () => {
+      const response = await api.get(`/api/v1/revenues/vehicles/${vehicleId}?page=${page}`);
+      return response.data;
+    },
+  });
+}
+
 export function useCreateRevenue(vehicleId: string) {
   const queryClient = useQueryClient();
 
@@ -160,6 +170,35 @@ export function useExportRevenues(vehicleId: string) {
       const link = document.createElement('a');
       link.href = url;
       link.download = `recettes_${startDate}.${format === 'pdf' ? 'pdf' : 'xlsx'}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Erreur lors de l\'export', error);
+      throw error;
+    }
+  };
+}
+
+export function useExportVehicleReport(vehicleId: string) {
+  return async (format: 'pdf' | 'excel') => {
+    try {
+      const response = await api.get(`/api/v1/reports/vehicle/${vehicleId}/${format}`, {
+        responseType: format === 'pdf' ? 'arraybuffer' : 'blob',
+      });
+
+      const blob = new Blob([response.data], {
+        type:
+          format === 'pdf'
+            ? 'application/pdf'
+            : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `rapport_vehicule_${new Date().toISOString().split('T')[0]}.${format === 'pdf' ? 'pdf' : 'xlsx'}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
