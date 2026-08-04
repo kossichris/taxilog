@@ -211,9 +211,9 @@ export default function RevenuesPage() {
                       {revenue.signed_at && ` • Signé le ${new Date(revenue.signed_at).toLocaleDateString('fr-FR')}`}
                     </p>
                   </div>
-                  <div className="flex items-center gap-3 w-full sm:w-auto ml-auto">
-                    <p className="text-lg font-bold text-emerald-600 whitespace-nowrap">{revenue.amount} F</p>
-                    <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-3 w-full">
+                    <p className="text-lg font-bold text-emerald-600">{revenue.amount} F</p>
+                    <div className="flex items-center gap-1 ml-auto">
                       {revenue.status === 'PENDING' && (
                         <button
                           onClick={() => handleSign(revenue.id)}

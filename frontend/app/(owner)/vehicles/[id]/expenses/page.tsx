@@ -229,9 +229,9 @@ export default function ExpensesPage() {
                         <p className="text-sm text-gray-600 ml-11">{expense.description}</p>
                       )}
                     </div>
-                    <div className="flex items-center gap-3 w-full sm:w-auto ml-auto">
-                      <p className="text-lg font-bold text-red-600 whitespace-nowrap">{expense.amount} F</p>
-                      <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-3 w-full">
+                      <p className="text-lg font-bold text-red-600">{expense.amount} F</p>
+                      <div className="flex items-center gap-1 ml-auto">
                         {expense.status === 'PENDING' && (
                           <button
                             onClick={() => handleSign(expense.id)}
