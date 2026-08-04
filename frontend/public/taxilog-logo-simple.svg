@@ -1,0 +1,9 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="200" height="200" fill="#F59E0B" rx="20"/>
+
+  <!-- Text only -->
+  <text x="100" y="130" font-family="'Segoe UI', Arial, sans-serif" font-size="48" font-weight="700" text-anchor="middle" fill="white" letter-spacing="-2">
+    TaxiLog
+  </text>
+</svg>
