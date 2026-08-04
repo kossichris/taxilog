@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { DollarSign, ArrowLeft, Plus, Check, Clock, X, Trash2, CheckCircle2, XCircle } from 'lucide-react';
-import { useGetVehicleRevenues, useValidateRevenue, useDeleteRevenue, useSignRevenue, useRejectRevenue } from '@/hooks/useRevenues';
+import { DollarSign, ArrowLeft, Plus, Check, Clock, X, Trash2, CheckCircle2, XCircle, Download } from 'lucide-react';
+import { useGetVehicleRevenues, useValidateRevenue, useDeleteRevenue, useSignRevenue, useRejectRevenue, useExportRevenues } from '@/hooks/useRevenues';
 import ConfirmModal from '@/components/ConfirmModal';
+import ExportModal from '@/components/ExportModal';
 
 export default function RevenuesPage() {
   const { id } = useParams();
@@ -14,7 +15,10 @@ export default function RevenuesPage() {
   const deleteMutation = useDeleteRevenue(id as string);
   const signMutation = useSignRevenue();
   const rejectMutation = useRejectRevenue(id as string);
+  const exportRevenues = useExportRevenues(id as string);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [selectedRevenueId, setSelectedRevenueId] = useState<string | null>(null);
   const [filterMonth, setFilterMonth] = useState<string>('');
 
@@ -126,6 +130,26 @@ export default function RevenuesPage() {
     setSelectedRevenueId(null);
   };
 
+  const handleExport = async (format: 'pdf' | 'excel') => {
+    setIsExporting(true);
+    try {
+      const startDate = filterMonth
+        ? `${filterMonth}-01`
+        : new Date(Math.min(...revenues!.map(r => new Date(r.date).getTime())))
+            .toISOString()
+            .split('T')[0];
+      const endDate = filterMonth
+        ? new Date(filterMonth + '-01T00:00:00').toISOString().split('T')[0]
+        : new Date().toISOString().split('T')[0];
+
+      await exportRevenues(format, startDate, endDate);
+    } catch (err) {
+      alert('Erreur lors de l\'export');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div>
       {/* Back button */}
@@ -147,13 +171,22 @@ export default function RevenuesPage() {
               <h1 className="text-3xl sm:text-4xl font-bold text-emerald-600">Recettes</h1>
             </div>
           </div>
-          <Link
-            href={`/vehicles/${id}/revenues/new`}
-            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded-lg transition"
-          >
-            <Plus size={18} />
-            Ajouter
-          </Link>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setIsExportModalOpen(true)}
+              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded-lg transition"
+            >
+              <Download size={18} />
+              Exporter
+            </button>
+            <Link
+              href={`/vehicles/${id}/revenues/new`}
+              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded-lg transition"
+            >
+              <Plus size={18} />
+              Ajouter
+            </Link>
+          </div>
         </div>
 
         {/* Filter & Total */}
@@ -284,6 +317,13 @@ export default function RevenuesPage() {
         confirmText="Supprimer"
         cancelText="Annuler"
         isDangerous={true}
+      />
+
+      <ExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        onExport={handleExport}
+        isLoading={isExporting}
       />
     </div>
   );

@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { Banknote, ArrowLeft, Plus, Trash2, Check, Clock, X, CheckCircle2, XCircle } from 'lucide-react';
-import { useGetVehicleExpenses, useDeleteExpense, useSignExpense, useValidateExpense, useRejectExpense } from '@/hooks/useExpenses';
+import { Banknote, ArrowLeft, Plus, Trash2, Check, Clock, X, CheckCircle2, XCircle, Download } from 'lucide-react';
+import { useGetVehicleExpenses, useDeleteExpense, useSignExpense, useValidateExpense, useRejectExpense, useExportExpenses } from '@/hooks/useExpenses';
 import ConfirmModal from '@/components/ConfirmModal';
+import ExportModal from '@/components/ExportModal';
 
 const CATEGORY_LABELS: Record<string, { label: string; icon: string }> = {
   FUEL: { label: 'Carburant', icon: '⛽' },
@@ -23,7 +24,10 @@ export default function ExpensesPage() {
   const signMutation = useSignExpense();
   const validateMutation = useValidateExpense(id as string);
   const rejectMutation = useRejectExpense(id as string);
+  const exportExpenses = useExportExpenses(id as string);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [selectedExpenseId, setSelectedExpenseId] = useState<string | null>(null);
   const [filterMonth, setFilterMonth] = useState<string>('');
 
@@ -135,6 +139,26 @@ export default function ExpensesPage() {
     setSelectedExpenseId(null);
   };
 
+  const handleExport = async (format: 'pdf' | 'excel') => {
+    setIsExporting(true);
+    try {
+      const startDate = filterMonth
+        ? `${filterMonth}-01`
+        : new Date(Math.min(...expenses!.map(e => new Date(e.date).getTime())))
+            .toISOString()
+            .split('T')[0];
+      const endDate = filterMonth
+        ? new Date(filterMonth + '-01T00:00:00').toISOString().split('T')[0]
+        : new Date().toISOString().split('T')[0];
+
+      await exportExpenses(format, startDate, endDate);
+    } catch (err) {
+      alert('Erreur lors de l\'export');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div>
       {/* Back button */}
@@ -156,13 +180,22 @@ export default function ExpensesPage() {
               <h1 className="text-3xl sm:text-4xl font-bold text-red-600">Dépenses</h1>
             </div>
           </div>
-          <Link
-            href={`/vehicles/${id}/expenses/new`}
-            className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition"
-          >
-            <Plus size={18} />
-            Ajouter
-          </Link>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setIsExportModalOpen(true)}
+              className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition"
+            >
+              <Download size={18} />
+              Exporter
+            </button>
+            <Link
+              href={`/vehicles/${id}/expenses/new`}
+              className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition"
+            >
+              <Plus size={18} />
+              Ajouter
+            </Link>
+          </div>
         </div>
 
         {/* Filter & Total */}
@@ -303,6 +336,13 @@ export default function ExpensesPage() {
         confirmText="Supprimer"
         cancelText="Annuler"
         isDangerous={true}
+      />
+
+      <ExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        onExport={handleExport}
+        isLoading={isExporting}
       />
     </div>
   );
