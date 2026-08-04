@@ -176,4 +176,10 @@ export class ExpensesService {
       order: { date: 'DESC' },
     });
   }
+
+  async getVehicle(vehicleId: string) {
+    return this.vehiclesRepository.findOne({
+      where: { id: vehicleId },
+    });
+  }
 }

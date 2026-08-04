@@ -5,10 +5,11 @@ import { RevenuesService } from './revenues.service';
 import { RevenuesController } from './revenues.controller';
 import { Vehicle } from '../vehicles/entities/vehicle.entity';
 import { Driver } from '../drivers/entities/driver.entity';
+import { ExportService } from '../common/services/export.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Revenue, Vehicle, Driver])],
-  providers: [RevenuesService],
+  providers: [RevenuesService, ExportService],
   controllers: [RevenuesController],
   exports: [RevenuesService],
 })

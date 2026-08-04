@@ -7,17 +7,23 @@ import {
   Body,
   UseGuards,
   Request,
+  Query,
+  Response,
 } from '@nestjs/common';
 import { ExpensesService } from './expenses.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '../common/enums/role.enum';
+import { ExportService } from '../common/services/export.service';
 
 @Controller('api/v1/expenses')
 @UseGuards(JwtAuthGuard)
 export class ExpensesController {
-  constructor(private expensesService: ExpensesService) {}
+  constructor(
+    private expensesService: ExpensesService,
+    private exportService: ExportService,
+  ) {}
 
   @Post('vehicles/:vehicleId')
   @UseGuards(RolesGuard)
@@ -113,5 +119,76 @@ export class ExpensesController {
   ) {
     await this.expensesService.deleteExpense(id, req.user.id);
     return { message: 'Dépense supprimée avec succès' };
+  }
+
+  @Get('export/:vehicleId/:format')
+  @UseGuards(RolesGuard)
+  @Roles(Role.OWNER)
+  async exportExpenses(
+    @Param('vehicleId') vehicleId: string,
+    @Param('format') format: 'pdf' | 'excel',
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+    @Response() res: any,
+    @Request() req: any,
+  ) {
+    const expenses = await this.expensesService.getVehicleExpenses(
+      vehicleId,
+      req.user.id,
+    );
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    const filtered = expenses.filter((e) => {
+      const eDate = new Date(e.date);
+      return eDate >= start && eDate <= end;
+    });
+
+    const vehicle = await this.expensesService.getVehicle(vehicleId);
+
+    if (!vehicle) {
+      throw new Error('Véhicule non trouvé');
+    }
+
+    const total = filtered.reduce((sum, e) => sum + parseFloat(e.amount.toString()), 0);
+    const validated = filtered
+      .filter((e) => e.status === 'VALIDATED')
+      .reduce((sum, e) => sum + parseFloat(e.amount.toString()), 0);
+
+    const exportData = {
+      vehiclePlate: vehicle.plate,
+      startDate: start,
+      endDate: end,
+      items: filtered.map((e) => ({
+        date: new Date(e.date).toLocaleDateString('fr-FR'),
+        name: `${e.category}`,
+        amount: parseFloat(e.amount.toString()),
+        status: e.status,
+      })),
+      total,
+      validated,
+    };
+
+    if (format === 'pdf') {
+      const pdf = this.exportService.generatePDF(exportData);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="depenses_${vehicle.plate}_${startDate}.pdf"`,
+      );
+      res.send(pdf);
+    } else {
+      const excel = await this.exportService.generateExcel(exportData);
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      );
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="depenses_${vehicle.plate}_${startDate}.xlsx"`,
+      );
+      res.send(excel);
+    }
   }
 }

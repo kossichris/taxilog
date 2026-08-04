@@ -191,4 +191,10 @@ export class RevenuesService {
     revenue.status = 'PENDING';
     return this.revenuesRepository.save(revenue);
   }
+
+  async getVehicle(vehicleId: string) {
+    return this.vehiclesRepository.findOne({
+      where: { id: vehicleId },
+    });
+  }
 }
