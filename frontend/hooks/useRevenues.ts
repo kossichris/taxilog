@@ -103,6 +103,22 @@ export function useValidateRevenue(vehicleId?: string) {
   });
 }
 
+export function useRejectRevenue(vehicleId?: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (revenueId: string) => {
+      const response = await api.post(`/api/v1/revenues/${revenueId}/reject`);
+      return response.data;
+    },
+    onSuccess: () => {
+      if (vehicleId) {
+        queryClient.invalidateQueries({ queryKey: ['revenues', vehicleId] });
+      }
+    },
+  });
+}
+
 export function useDeleteRevenue(vehicleId?: string) {
   const queryClient = useQueryClient();
 

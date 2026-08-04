@@ -172,4 +172,23 @@ export class RevenuesService {
 
     return parseFloat(result?.total || 0);
   }
+
+  async rejectRevenue(revenueId: string, ownerId: string): Promise<Revenue> {
+    const revenue = await this.revenuesRepository.findOne({ where: { id: revenueId } });
+
+    if (!revenue) {
+      throw new NotFoundException('Recette non trouvée');
+    }
+
+    if (revenue.owner_id !== ownerId) {
+      throw new BadRequestException('Vous ne pouvez pas rejeter cette recette');
+    }
+
+    if (revenue.status !== 'SIGNED') {
+      throw new BadRequestException('Cette recette ne peut pas être rejetée');
+    }
+
+    revenue.status = 'PENDING';
+    return this.revenuesRepository.save(revenue);
+  }
 }

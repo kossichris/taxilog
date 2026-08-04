@@ -96,6 +96,16 @@ export class RevenuesController {
     return this.revenuesService.validateRevenue(id, req.user.id);
   }
 
+  @Post(':id/reject')
+  @UseGuards(RolesGuard)
+  @Roles(Role.OWNER)
+  async rejectRevenue(
+    @Param('id') id: string,
+    @Request() req: any,
+  ) {
+    return this.revenuesService.rejectRevenue(id, req.user.id);
+  }
+
   @Delete(':id')
   @UseGuards(RolesGuard)
   @Roles(Role.OWNER)

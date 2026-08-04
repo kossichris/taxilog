@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { DollarSign, ArrowLeft, Plus, Check, Clock, X, Trash2 } from 'lucide-react';
-import { useGetVehicleRevenues, useValidateRevenue, useDeleteRevenue } from '@/hooks/useRevenues';
+import { useGetVehicleRevenues, useValidateRevenue, useDeleteRevenue, useSignRevenue, useRejectRevenue } from '@/hooks/useRevenues';
 import ConfirmModal from '@/components/ConfirmModal';
 
 export default function RevenuesPage() {
@@ -12,6 +12,8 @@ export default function RevenuesPage() {
   const { data: revenues, isLoading, error } = useGetVehicleRevenues(id as string);
   const validateMutation = useValidateRevenue(id as string);
   const deleteMutation = useDeleteRevenue(id as string);
+  const signMutation = useSignRevenue();
+  const rejectMutation = useRejectRevenue(id as string);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRevenueId, setSelectedRevenueId] = useState<string | null>(null);
   const [filterMonth, setFilterMonth] = useState<string>('');
@@ -63,11 +65,39 @@ export default function RevenuesPage() {
     );
   }
 
+  const handleSign = async (revenueId: string) => {
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = 400;
+      canvas.height = 150;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#333';
+        ctx.font = '20px Arial';
+        ctx.fillText('Signé par owner', 50, 50);
+        const signature = canvas.toDataURL('image/png');
+        await signMutation.mutateAsync({ revenueId, signature });
+      }
+    } catch (err) {
+      alert('Erreur lors de la signature');
+    }
+  };
+
   const handleValidate = async (revenueId: string) => {
     try {
       await validateMutation.mutateAsync(revenueId);
     } catch (err) {
       alert('Erreur lors de la validation');
+    }
+  };
+
+  const handleReject = async (revenueId: string) => {
+    try {
+      await rejectMutation.mutateAsync(revenueId);
+    } catch (err) {
+      alert('Erreur lors du rejet');
     }
   };
 
@@ -181,15 +211,33 @@ export default function RevenuesPage() {
                       {revenue.signed_at && ` • Signé le ${new Date(revenue.signed_at).toLocaleDateString('fr-FR')}`}
                     </p>
                   </div>
-                  <div className="flex items-center gap-4 w-full sm:w-auto">
+                  <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap justify-end">
                     <p className="text-xl font-bold text-emerald-600">{revenue.amount} F</p>
+                    {revenue.status === 'PENDING' && (
+                      <button
+                        onClick={() => handleSign(revenue.id)}
+                        disabled={signMutation.isPending}
+                        className="bg-amber-600 hover:bg-amber-700 disabled:bg-amber-400 text-white font-semibold py-2 px-3 rounded transition text-sm"
+                      >
+                        Signer
+                      </button>
+                    )}
                     {revenue.status === 'SIGNED' && (
                       <button
                         onClick={() => handleValidate(revenue.id)}
                         disabled={validateMutation.isPending}
-                        className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-semibold py-2 px-4 rounded transition text-sm"
+                        className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-semibold py-2 px-3 rounded transition text-sm"
                       >
                         Valider
+                      </button>
+                    )}
+                    {revenue.status === 'SIGNED' && (
+                      <button
+                        onClick={() => handleReject(revenue.id)}
+                        disabled={rejectMutation.isPending}
+                        className="bg-orange-600 hover:bg-orange-700 disabled:bg-orange-400 text-white font-semibold py-2 px-3 rounded transition text-sm"
+                      >
+                        Rejeter
                       </button>
                     )}
                     <button
