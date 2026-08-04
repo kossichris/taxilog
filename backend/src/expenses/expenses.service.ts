@@ -33,7 +33,7 @@ export class ExpensesService {
     const expense = this.expensesRepository.create({
       vehicle_id: vehicleId,
       owner_id: ownerId,
-      driver_id: driverId || null,
+      ...(driverId && { driver_id: driverId }),
       amount,
       description,
       category,

@@ -22,7 +22,7 @@ export class Expense {
   owner_id: string;
 
   @Column('uuid', { nullable: true })
-  driver_id: string;
+  driver_id?: string;
 
   @Column('decimal', { precision: 10, scale: 2 })
   amount: number;
@@ -39,7 +39,7 @@ export class Expense {
   @Column('varchar', { default: 'PENDING' })
   status: 'PENDING' | 'SIGNED' | 'VALIDATED' | 'REJECTED';
 
-  @Column('longtext', { nullable: true })
+  @Column('text', { nullable: true })
   signature: string;
 
   @Column('timestamp', { nullable: true })
