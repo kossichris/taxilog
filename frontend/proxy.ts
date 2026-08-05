@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const accessToken = request.cookies.get('access_token')?.value;
   const userRole = request.cookies.get('userRole')?.value;
